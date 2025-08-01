@@ -1,0 +1,63 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.2.6'
+    id 'io.spring.dependency-management' version '1.1.4'
+}
+
+group = 'iorihuang'
+version = '1.0-SNAPSHOT'
+sourceCompatibility = '17'
+
+repositories {
+    mavenLocal()
+    maven {
+        url "https://maven.aliyun.com/repository/public"
+    }
+    mavenCentral()
+}
+
+dependencies {
+    implementation('org.springframework.boot:spring-boot-starter-web') {
+        exclude group: 'org.slf4j', module: 'slf4j-simple'
+    }
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'com.github.ben-manes.caffeine:caffeine:3.1.8'
+    implementation 'org.projectlombok:lombok:1.18.30'
+    implementation('it.ozimov:embedded-redis:0.7.3') {
+        exclude group: 'org.slf4j', module: 'slf4j-simple'
+    }
+//    runtimeOnly 'com.h2database:h2'
+    implementation 'com.h2database:h2'
+    annotationProcessor 'org.projectlombok:lombok:1.18.30'
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation('org.springframework.boot:spring-boot-starter-test') {
+        exclude group: 'org.slf4j', module: 'slf4j-simple'
+    }
+}
+
+test {
+    useJUnitPlatform()
+}
+
+tasks.jar {
+    manifest {
+        attributes(
+                'Main-Class': 'iorihuang.bankaccountmanager.BankAccountManagerApplication'
+        )
+    }
+    exclude 'application.properties'
+    exclude 'logback.xml'
+}
+
+bootJar {
+    archiveFileName = 'bank-account-manager.jar'
+    launchScript()
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
