@@ -11,6 +11,7 @@ public enum ExpCode {
     UpdateAccountFail(10005, "Update account failed"),
     InsufficientBalance(10006, "Insufficient balance for the operation"),
     TransferAccountLimit(10007, "Account limit to transfer balance "),
+    AccountConcurrentLimit(10008, "Account current operation limit"),
     DbCreateAccountErr(20001, "Database error while creating account"),
     DbDeleteAccountErr(20002, "Database error while delete account"),
     DbUpdateAccountErr(20003, "Database error while update account"),

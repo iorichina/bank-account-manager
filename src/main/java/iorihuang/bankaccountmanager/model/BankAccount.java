@@ -43,7 +43,7 @@ public class BankAccount {
     @Column(length = 64)
     private String contactInfo;
 
-    @Column(nullable = false)
+    @Column(nullable = false, precision = 25, scale = 10)
     private BigDecimal balance;
 
     @Column

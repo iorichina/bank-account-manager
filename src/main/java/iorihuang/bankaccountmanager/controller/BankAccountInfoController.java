@@ -1,9 +1,11 @@
 package iorihuang.bankaccountmanager.controller;
 
+import io.micrometer.observation.annotation.Observed;
 import iorihuang.bankaccountmanager.dto.BankAccountDTO;
 import iorihuang.bankaccountmanager.dto.BankAccountListDTO;
 import iorihuang.bankaccountmanager.service.BankAccountService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,6 +15,8 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/info/api/accounts/v1")
 @RequiredArgsConstructor
+@Slf4j
+@Observed(name = "info.controller")
 public class BankAccountInfoController extends BaseController {
     private final BankAccountService service;
 
@@ -24,7 +28,8 @@ public class BankAccountInfoController extends BaseController {
      * @return
      */
     @GetMapping("/list")
-    public ResponseEntity<?> list(@RequestParam(name = "last_id") Long lastId, @RequestParam Integer size) {
+    @Observed(name = "bank.account.list")
+    public ResponseEntity<?> list(@RequestParam(name = "last_id", required = false) Long lastId, @RequestParam(required = false) Integer size) {
         // TODO: Implement rate limiting to prevent abuse of the API
         BankAccountListDTO dto = service.listAccounts(lastId, size);
         return buildResponse(dto);
@@ -37,9 +42,10 @@ public class BankAccountInfoController extends BaseController {
      * @return
      */
     @GetMapping("/{accountNumber}")
-    public BankAccountDTO get(@PathVariable String accountNumber) {
-        return service.getAccount(accountNumber);
+    @Observed(name = "bank.account.get")
+    public ResponseEntity<?> get(@PathVariable String accountNumber) {
+        BankAccountDTO dto = service.getAccount(accountNumber);
+        return buildResponse(dto);
     }
 
 }
-

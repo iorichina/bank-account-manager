@@ -1,5 +1,6 @@
 package iorihuang.bankaccountmanager.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import iorihuang.bankaccountmanager.constant.AccountConst;
 import lombok.Data;
@@ -14,6 +15,7 @@ import java.util.Objects;
  */
 @Data
 @Accessors(chain = true)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class BankAccountDTO {
     /**
      * using String instead of Long for id to avoid long overflow issues

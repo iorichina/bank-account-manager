@@ -1,5 +1,6 @@
 package iorihuang.bankaccountmanager.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -10,8 +11,9 @@ import lombok.experimental.Accessors;
  */
 @Data
 @Accessors(chain = true)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class DTOResponse<T> {
-    private long ts;
+    private String ts;
     /**
      * code of op result, 0 means fail, 1 means success
      */
@@ -25,6 +27,6 @@ public class DTOResponse<T> {
     private T data;
 
     public DTOResponse() {
-        ts = System.currentTimeMillis();
+        ts = String.valueOf(System.currentTimeMillis());
     }
 }

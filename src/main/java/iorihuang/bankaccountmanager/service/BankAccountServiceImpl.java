@@ -1,5 +1,6 @@
 package iorihuang.bankaccountmanager.service;
 
+import io.micrometer.observation.annotation.Observed;
 import iorihuang.bankaccountmanager.constant.AccountConst;
 import iorihuang.bankaccountmanager.dto.*;
 import iorihuang.bankaccountmanager.exception.AccountExceptions;
@@ -7,6 +8,7 @@ import iorihuang.bankaccountmanager.exception.ExpCode;
 import iorihuang.bankaccountmanager.exception.error.AccountReadError;
 import iorihuang.bankaccountmanager.exception.error.AccountUpdateError;
 import iorihuang.bankaccountmanager.exception.exception.*;
+import iorihuang.bankaccountmanager.helper.RedisLock;
 import iorihuang.bankaccountmanager.helper.snowflakeid.SnowFlakeIdHelper;
 import iorihuang.bankaccountmanager.model.BankAccount;
 import iorihuang.bankaccountmanager.model.bankaccount.AccountState;
@@ -15,9 +17,11 @@ import iorihuang.bankaccountmanager.repository.BankAccountRepository;
 import iorihuang.bankaccountmanager.repository.BankAccountTrans;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,13 +39,17 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Observed(name = "bank.account.service")
 public class BankAccountServiceImpl implements BankAccountService {
+    @Autowired(required = false)
+    private StringRedisTemplate redisTemplate;
     private final BankAccountRepository repository;
     private final BankAccountTrans trans;
     private final SnowFlakeIdHelper idHelper;
     private final SnowFlakeIdHelper verHelper;
 
     //todo lock before op
+
 
     /**
      * Create a bank account
@@ -50,6 +58,7 @@ public class BankAccountServiceImpl implements BankAccountService {
      * @return account created
      */
     @Override
+    @Observed(name = "bank.account.service.create")
     public BankAccountDTO createAccount(CreateAccountRequest request) {
         // Convert String initialBalance to BigDecimal
         BigDecimal balance = request.getInitialBalanceAsBigDecimal();
@@ -107,7 +116,11 @@ public class BankAccountServiceImpl implements BankAccountService {
                 .updatedAt(now)
                 .deleteAt(now)
                 .build();
-        try {
+        // Redis distributed lock to prevent concurrent creation of the same account
+        try (RedisLock lock = new RedisLock(redisTemplate, getLockKey(accountNumber), 3)) {
+            if (!lock.isLocked()) {
+                throw new AccountConcurrentException("Failed to acquire account creation lock: " + accountNumber);
+            }
             account = trans.createAccount(account);
         } catch (Exception e) {
             log.error("createAccount fail with error:{}", accountNumber, e);
@@ -115,6 +128,11 @@ public class BankAccountServiceImpl implements BankAccountService {
         }
         log.info("Account create success:{}", accountNumber);
         return toDTO(account);
+    }
+
+    private static String getLockKey(String accountNumber) {
+        String lockKey = "account:op:lock:" + accountNumber;
+        return lockKey;
     }
 
     /**
@@ -125,6 +143,7 @@ public class BankAccountServiceImpl implements BankAccountService {
      */
     @Override
     @CacheEvict(value = "account", key = "#accountNumber")
+    @Observed(name = "bank.account.service.delete")
     public BankAccountDTO deleteAccount(String accountNumber) {
         Optional<BankAccount> accountOpt = getAccountByAccountNumber(accountNumber);
         if (accountOpt.isEmpty()) {
@@ -156,7 +175,11 @@ public class BankAccountServiceImpl implements BankAccountService {
             newState = AccountState.FROZEN;
         }
 
-        try {
+        // Redis distributed lock to prevent concurrent creation of the same account
+        try (RedisLock lock = new RedisLock(redisTemplate, getLockKey(accountNumber), 3)) {
+            if (!lock.isLocked()) {
+                throw new AccountConcurrentException("Failed to acquire account creation lock: " + accountNumber);
+            }
             trans.deleteAccount(account, newState, newVersion);
         } catch (Exception e) {
             log.error("Account delete fail with error:{}", accountNumber, e);
@@ -177,6 +200,7 @@ public class BankAccountServiceImpl implements BankAccountService {
      */
     @Override
     @CachePut(value = "account", key = "#accountNumber")
+    @Observed(name = "bank.account.service.update")
     public BankAccountDTO updateAccount(String accountNumber, UpdateAccountRequest request) {
         Optional<BankAccount> accountOpt = getAccountByAccountNumber(accountNumber);
         if (accountOpt.isEmpty()) {
@@ -200,7 +224,11 @@ public class BankAccountServiceImpl implements BankAccountService {
         }
         Long newVersion = verHelper.genId();
 
-        try {
+        // Redis distributed lock to prevent concurrent creation of the same account
+        try (RedisLock lock = new RedisLock(redisTemplate, getLockKey(accountNumber), 3)) {
+            if (!lock.isLocked()) {
+                throw new AccountConcurrentException("Failed to acquire account creation lock: " + accountNumber);
+            }
             trans.updateAccount(account, ownerName, contactInfo, newVersion);
         } catch (Exception e) {
             log.error("Account update fail with error:{}", accountNumber, e);
@@ -218,6 +246,7 @@ public class BankAccountServiceImpl implements BankAccountService {
      * @param request Transfer request
      */
     @Override
+    @Observed(name = "bank.account.service.transfer")
     public BankTransferDTO transfer(TransferRequest request) {
         // Validate that source and destination accounts are different
         String fromAccountNumber = request.getFromAccountNumber();
@@ -277,7 +306,15 @@ public class BankAccountServiceImpl implements BankAccountService {
 
         long newVersion = verHelper.genId();
         // Save updated accounts
-        try {
+        // Redis distributed lock to prevent concurrent creation of the same account
+        try (RedisLock lock1 = new RedisLock(redisTemplate, getLockKey(fromAccountNumber), 3);
+             RedisLock lock2 = new RedisLock(redisTemplate, getLockKey(toAccountNumber), 3)) {
+            if (!lock1.isLocked()) {
+                throw new AccountConcurrentException("Failed to acquire account creation lock: " + fromAccountNumber);
+            }
+            if (!lock2.isLocked()) {
+                throw new AccountConcurrentException("Failed to acquire account creation lock: " + toAccountNumber);
+            }
             trans.transfer(from, to, amount, newVersion);
         } catch (Exception e) {
             log.error("Transfer failed from account {} to account {} with amount {}",
@@ -305,6 +342,7 @@ public class BankAccountServiceImpl implements BankAccountService {
 
     @Override
     @Transactional(readOnly = true)
+    @Observed(name = "bank.account.service.list")
     public BankAccountListDTO listAccounts(Long lastId, Integer size) {
         if (null == lastId) {
             lastId = Long.MAX_VALUE; // Default to max value if lastId is negative
@@ -339,6 +377,7 @@ public class BankAccountServiceImpl implements BankAccountService {
         dto.setElements(elements);
         dto.setLastId(elements.isEmpty() ? null : elements.get(elements.size() - 1).getId());
 
+        log.info("List accounts with lastId: {}, size: {}, hasMore: {}", lastId, size, dto.getHasMore());
         return dto;
     }
 
@@ -351,6 +390,7 @@ public class BankAccountServiceImpl implements BankAccountService {
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "account", key = "#accountNumber")
+    @Observed(name = "bank.account.service.get")
     public BankAccountDTO getAccount(String accountNumber) {
         Optional<BankAccount> bankAccount = getAccountByAccountNumber(accountNumber);
         if (bankAccount.isEmpty()) {
@@ -358,6 +398,7 @@ public class BankAccountServiceImpl implements BankAccountService {
             throw new AccountNotFoundException("Account not found: " + accountNumber);
         }
         BankAccount account = bankAccount.get();
+        log.info("Get account : {}", accountNumber);
         return toDTO(account);
     }
 
@@ -373,3 +414,4 @@ public class BankAccountServiceImpl implements BankAccountService {
                 .setState(account.getState());
     }
 }
+

@@ -1,5 +1,6 @@
 package iorihuang.bankaccountmanager.repository;
 
+import io.micrometer.observation.annotation.Observed;
 import iorihuang.bankaccountmanager.model.BankAccount;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -18,6 +19,7 @@ import java.util.Optional;
  * Actually implemented as find-then-update, to be implemented in the service layer.
  */
 @Repository
+@Observed(name = "bank.account.repository")
 public interface BankAccountRepository extends JpaRepository<BankAccount, Long> {
     /**
      * Find all accounts by state, paginate by primary key ID
@@ -29,11 +31,13 @@ public interface BankAccountRepository extends JpaRepository<BankAccount, Long> 
      */
     @Query(value = "SELECT id, account_number, account_type, owner_id, owner_name, contact_info, balance, balance_at, state, ver, created_at, updated_at, delete_at FROM bank_account WHERE state = :state AND id < :lastId ORDER BY id DESC LIMIT :limit",
             nativeQuery = true)
+    @Observed(name = "bank.account.repository.find-by-state")
     List<BankAccount> findByState(int state, long lastId, int limit);
 
     /**
      * Find account by account number, used only for unique index precise lookup
      */
+    @Observed(name = "bank.account.repository.find-by-account-number")
     Optional<BankAccount> findByAccountNumber(String accountNumber);
 
     /**
@@ -50,12 +54,14 @@ public interface BankAccountRepository extends JpaRepository<BankAccount, Long> 
      */
     @Modifying
     @Transactional
-    @Query(value = "UPDATE bank_account SET " +
-            "state = :newState, " +
-            "update_at = :updateAt, " +
-            "ver = :newVersion " +
-            "WHERE id = :id AND account_number = :accountNumber AND state = :state AND ver = :version limit 1",
+    @Query(value = """
+            UPDATE bank_account SET
+             state = :newState,
+             update_at = :updateAt,
+             ver = :newVersion
+             WHERE id = :id AND account_number = :accountNumber AND state = :state AND ver = :version limit 1""",
             nativeQuery = true)
+    @Observed(name = "bank.account.repository.frozen-account")
     int frozenAccountByIdAndVersion(
             @Param("id") long id,//same id may in other zone so we need accountNumber
             @Param("accountNumber") String accountNumber,
@@ -85,6 +91,7 @@ public interface BankAccountRepository extends JpaRepository<BankAccount, Long> 
             "ver = :newVersion " +
             "WHERE id = :id AND account_number = :accountNumber AND state = :state AND ver = :version and balance = 0 limit 1",
             nativeQuery = true)
+    @Observed(name = "bank.account.repository.close-account")
     int closeAccountByIdAndVersion(
             @Param("id") long id,//same id may in other zone so we need accountNumber
             @Param("accountNumber") String accountNumber,
@@ -116,6 +123,7 @@ public interface BankAccountRepository extends JpaRepository<BankAccount, Long> 
             "ver = :newVersion " +
             "WHERE id = :id AND account_number = :accountNumber AND state = :state AND ver = :version limit 1",
             nativeQuery = true)
+    @Observed(name = "bank.account.repository.update-account")
     int updateAccountByIdAndVersion(
             @Param("id") long id,//same id may in other zone so we need accountNumber
             @Param("accountNumber") String accountNumber,
@@ -147,6 +155,7 @@ public interface BankAccountRepository extends JpaRepository<BankAccount, Long> 
             "ver = :newVersion " +
             "WHERE id = :id AND account_number = :accountNumber AND state = :state AND ver = :version AND balance = :balance AND balance >= :amount limit 1",
             nativeQuery = true)
+    @Observed(name = "bank.account.repository.reduce-balance")
     int reduceBalanceByIdAndVersion(
             @Param("id") long id,//same id may in other zone so we need accountNumber
             @Param("accountNumber") String accountNumber,
@@ -178,6 +187,7 @@ public interface BankAccountRepository extends JpaRepository<BankAccount, Long> 
             "ver = :newVersion " +
             "WHERE id = :id AND account_number = :accountNumber AND state = :state AND ver = :version AND balance = :balance limit 1",
             nativeQuery = true)
+    @Observed(name = "bank.account.repository.increase-balance")
     int increaseBalanceByIdAndVersion(
             @Param("id") long id,//same id may in other zone so we need accountNumber
             @Param("accountNumber") String accountNumber,
