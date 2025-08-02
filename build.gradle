@@ -41,7 +41,39 @@ dependencies {
     testImplementation('org.springframework.boot:spring-boot-starter-test') {
         exclude group: 'org.slf4j', module: 'slf4j-simple'
     }
+    // JMH 基准测试依赖
+    testImplementation 'org.openjdk.jmh:jmh-core:1.37'
+    testAnnotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.37'
 }
+
+// JMH 独立基准测试jar配置
+configurations {
+    jmh
+}
+dependencies {
+    jmh 'org.openjdk.jmh:jmh-core:1.37'
+    testAnnotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.37'
+}
+task jmhJar(type: Jar) {
+    archiveClassifier = 'jmh'
+    manifest {
+        attributes 'Main-Class': 'org.openjdk.jmh.Main'
+    }
+    from sourceSets.test.output
+    dependsOn testClasses
+    from {
+        configurations.jmh.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    with jar
+}
+
+// 配置复制依赖到 lib 目录
+task copyDependencies(type: Copy) {
+    from configurations.runtimeClasspath
+    into 'build/libs/lib'
+}
+
+tasks.bootJar.dependsOn copyDependencies
 
 test {
     useJUnitPlatform()
@@ -57,7 +89,12 @@ tasks.jar {
     exclude 'logback.xml'
 }
 
+jar {
+    enabled = true
+}
+
 bootJar {
+    enabled = true
     archiveFileName = 'bank-account-manager.jar'
     launchScript()
 }

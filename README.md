@@ -50,7 +50,7 @@ docker build -t bank-account-manager .
 # 使用默认配置
 docker run -p 10086:10086 bank-account-manager
 # 使用自定义配置
-docker run -e JAVA_OPTS="-Xmx512m -XX:+UseG1GC" -p 10086:10086 bank-account-manager
+docker run -e JAVA_OPTS="-server -Xms2g -Xmx2g -XX:NewRatio=2 -XX:+UseG1GC -Xlog:gc* -XX:MaxGCPauseMillis=200" -p 10086:10086 bank-account-manager
 ```
 
 ### 2. 访问接口
@@ -198,8 +198,18 @@ docker run -e JAVA_OPTS="-Xmx512m -XX:+UseG1GC" -p 10086:10086 bank-account-mana
 
 ### 4. 测试
 
+#### 单元测试
+
 ```bash
 ./gradlew test
+```
+
+#### 基准压力测试
+
+```bash
+./gradlew jmhJar
+
+java -jar build/libs/bank-account-manager-1.0-SNAPSHOT-jmh.jar  -t 100 -i 10 
 ```
 
 ### 5. 数据库建表
