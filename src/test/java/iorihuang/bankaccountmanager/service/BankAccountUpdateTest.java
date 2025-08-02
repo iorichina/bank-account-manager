@@ -5,8 +5,10 @@ import iorihuang.bankaccountmanager.dto.BankAccountDTO;
 import iorihuang.bankaccountmanager.dto.UpdateAccountRequest;
 import iorihuang.bankaccountmanager.exception.AccountError;
 import iorihuang.bankaccountmanager.exception.AccountException;
+import iorihuang.bankaccountmanager.exception.error.AccountUpdateError;
 import iorihuang.bankaccountmanager.exception.exception.AccountNotFoundException;
 import iorihuang.bankaccountmanager.exception.exception.AccountParamException;
+import iorihuang.bankaccountmanager.exception.exception.UpdateAccountException;
 import iorihuang.bankaccountmanager.helper.snowflakeid.SnowFlakeIdHelper;
 import iorihuang.bankaccountmanager.helper.snowflakeid.SnowFlakeIdProperties;
 import iorihuang.bankaccountmanager.model.BankAccount;
@@ -91,6 +93,30 @@ class BankAccountUpdateTest {
         BankAccountDTO dto = service.updateAccount("A001", req);
         assertEquals(acc.getId().toString(), dto.getId());
         assertEquals("A001", dto.getAccountNumber());
+    }
+
+    @Test
+    void updateAccount_closed() throws AccountError, AccountException {
+        BankAccount acc = BankAccount.builder().state(AccountState.CLOSED.getCode()).id(1L).accountNumber("A001").ownerName("张三").contactInfo("13800000000").build();
+        BankAccount acc2 = BankAccount.builder().id(1L).accountNumber("A001").ownerName("李四").contactInfo("13900000000").build();
+        when(repository.findByAccountNumber("A001")).thenReturn(Optional.of(acc), Optional.of(acc2));
+        UpdateAccountRequest req = new UpdateAccountRequest();
+        req.setOwnerName("李四");
+        req.setContactInfo("13900000000");
+        when(trans.updateAccount(any(), any(), any(), anyLong(), any())).thenReturn(LocalDateTime.now());
+        assertThrows(UpdateAccountException.class, () -> service.updateAccount("A001", req));
+    }
+
+    @Test
+    void updateAccount_trans_throws() throws AccountError, AccountException {
+        BankAccount acc = BankAccount.builder().id(1L).accountNumber("A001").ownerName("张三").contactInfo("13800000000").build();
+        BankAccount acc2 = BankAccount.builder().id(1L).accountNumber("A001").ownerName("李四").contactInfo("13900000000").build();
+        when(repository.findByAccountNumber("A001")).thenReturn(Optional.of(acc), Optional.of(acc2));
+        UpdateAccountRequest req = new UpdateAccountRequest();
+        req.setOwnerName("李四");
+        req.setContactInfo("13900000000");
+        when(trans.updateAccount(any(), any(), any(), anyLong(), any())).thenThrow(new RuntimeException("trans error"));
+        assertThrows(AccountUpdateError.class, () -> service.updateAccount("A001", req));
     }
 
     @Test

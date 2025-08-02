@@ -3,6 +3,7 @@ package iorihuang.bankaccountmanager.service;
 import iorihuang.bankaccountmanager.dto.BankAccountListDTO;
 import iorihuang.bankaccountmanager.exception.AccountError;
 import iorihuang.bankaccountmanager.exception.AccountException;
+import iorihuang.bankaccountmanager.exception.exception.AccountParamException;
 import iorihuang.bankaccountmanager.model.BankAccount;
 import iorihuang.bankaccountmanager.model.bankaccount.AccountState;
 import iorihuang.bankaccountmanager.model.bankaccount.AccountType;
@@ -17,7 +18,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
@@ -35,12 +36,26 @@ class BankAccountListTest {
     @Test
     void listAccounts_success() throws AccountError, AccountException {
         BankAccount acc = BankAccount.builder().id(1L).accountNumber("A001").ownerName("张三").balance(new BigDecimal("100.00")).build();
-        when(repository.findByState(AccountState.ACTIVE.getCode(), Long.MAX_VALUE, 2)).thenReturn(List.of(acc, acc));
-        BankAccountListDTO page = service.listAccounts(null, Integer.valueOf(1));
-        assertEquals(1, page.getElements().size());
-        assertEquals(1, page.getHasMore());
+        when(repository.findByState(AccountState.ACTIVE.getCode(), Long.MAX_VALUE, 11)).thenReturn(List.of(acc, acc));
+        BankAccountListDTO page = service.listAccounts(null, null);
+        assertEquals(2, page.getElements().size());
+        assertEquals(0, page.getHasMore());
         assertEquals("1", page.getLastId());
         assertEquals("A001", page.getElements().get(0).getAccountNumber());
+    }
+
+    @Test
+    void listAccounts_null_list() throws AccountError, AccountException {
+        BankAccount acc = BankAccount.builder().id(1L).accountNumber("A001").ownerName("张三").balance(new BigDecimal("100.00")).build();
+        when(repository.findByState(AccountState.ACTIVE.getCode(), Long.MAX_VALUE, 2)).thenReturn(null);
+        assertDoesNotThrow(() -> service.listAccounts(null, Integer.valueOf(100)));
+    }
+
+    @Test
+    void listAccounts_size_exceed_max() throws AccountError, AccountException {
+        BankAccount acc = BankAccount.builder().id(1L).accountNumber("A001").ownerName("张三").balance(new BigDecimal("100.00")).build();
+        when(repository.findByState(AccountState.ACTIVE.getCode(), Long.MAX_VALUE, 2)).thenReturn(List.of(acc, acc));
+        assertThrows(AccountParamException.class, () -> service.listAccounts(null, Integer.valueOf(10000)));
     }
 
     @Test

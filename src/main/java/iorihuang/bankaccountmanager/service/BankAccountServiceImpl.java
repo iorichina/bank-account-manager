@@ -258,7 +258,7 @@ public class BankAccountServiceImpl implements BankAccountService {
         if (Objects.equals(account.getState(), AccountState.CLOSED.getCode())) {
             String message = String.format("Account is closed: %s", accountNumber);
             log.warn(message);
-            throw AccountExceptions.deleteFailWithClosed(accountNumber);
+            throw AccountExceptions.updateFailWithClosed(accountNumber);
         }
 
         // Validate request parameters

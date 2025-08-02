@@ -51,6 +51,10 @@
 
 ### 单元测试&基准测试
 
+单元测试覆盖领域服务
+
+基准测试启动springboot容器执行吞吐量压测
+
 ## 目录结构
 
 ```
@@ -236,6 +240,8 @@ docker run -e JAVA_OPTS="-server -Xms2g -Xmx2g -XX:NewRatio=2 -XX:+UseG1GC -Xlog
 
 #### 单元测试
 
+核心路径全覆盖
+
 ```bash
 ./gradlew test
 ```
@@ -247,6 +253,18 @@ docker run -e JAVA_OPTS="-server -Xms2g -Xmx2g -XX:NewRatio=2 -XX:+UseG1GC -Xlog
 ```bash
 ./gradlew jmh
 ```
+
+通过修改`build.gradle`中的`jmh`任务配置，可以调整基准测试的参数，如线程数、循环次数等。
+
+```config
+jmh {
+    iterations = 1
+    warmupIterations = 1
+    timeOnIteration = '10m'
+}
+```
+
+通过修改`benchmark/BankAccountServiceBenchmarkIface.java`文件中的常量控制每次执行测试需要测试的账户数量。
 
 ### 5. 数据库
 

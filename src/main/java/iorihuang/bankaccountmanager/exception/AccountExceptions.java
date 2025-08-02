@@ -32,6 +32,10 @@ public class AccountExceptions {
         return new UpdateAccountException("Account with ID " + accountId + " update fail.");
     }
 
+    public static UpdateAccountException updateFailWithClosed(String accountId) {
+        return new UpdateAccountException("Account with ID " + accountId + " is CLOSED.");
+    }
+
     public static InsufficientBalanceException insufficientBalance(String accountId, BigDecimal amount) {
         return new InsufficientBalanceException("Insufficient balance in account " + accountId + " for withdrawal of " + amount);
     }

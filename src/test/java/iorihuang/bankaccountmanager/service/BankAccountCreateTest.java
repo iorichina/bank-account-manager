@@ -5,6 +5,7 @@ import iorihuang.bankaccountmanager.dto.BankAccountDTO;
 import iorihuang.bankaccountmanager.dto.CreateAccountRequest;
 import iorihuang.bankaccountmanager.exception.AccountError;
 import iorihuang.bankaccountmanager.exception.AccountException;
+import iorihuang.bankaccountmanager.exception.exception.AccountParamException;
 import iorihuang.bankaccountmanager.exception.exception.DuplicateAccountException;
 import iorihuang.bankaccountmanager.helper.snowflakeid.SnowFlakeIdHelper;
 import iorihuang.bankaccountmanager.helper.snowflakeid.SnowFlakeIdProperties;
@@ -127,6 +128,32 @@ class BankAccountCreateTest {
         req.setInitialBalance(null);
         when(repository.findByAccountNumber(any())).thenReturn(Optional.empty());
         assertThrows(Exception.class, () -> service.createAccount(req));
+    }
+
+    @Test
+    void createAccount_invalid_balance() {
+        CreateAccountRequest req = new CreateAccountRequest();
+        req.setAccountNumber("111");
+        req.setAccountType(1);
+        req.setOwnerId("111");
+        req.setOwnerName("111");
+        req.setContactInfo("111");
+        req.setInitialBalance("32343.2034934934");
+        when(repository.findByAccountNumber(any())).thenReturn(Optional.empty());
+        assertThrows(AccountParamException.class, () -> service.createAccount(req));
+    }
+
+    @Test
+    void createAccount_invalid_accountType() {
+        CreateAccountRequest req = new CreateAccountRequest();
+        req.setAccountNumber("111");
+        req.setAccountType(5000);
+        req.setOwnerId("111");
+        req.setOwnerName("111");
+        req.setContactInfo("111");
+        req.setInitialBalance("32343.2034934934");
+        when(repository.findByAccountNumber(any())).thenReturn(Optional.empty());
+        assertThrows(AccountParamException.class, () -> service.createAccount(req));
     }
 }
 

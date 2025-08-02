@@ -97,3 +97,9 @@ shadowJar {
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
 }
+
+jmh {
+    iterations = 1
+    warmupIterations = 5
+    timeOnIteration = '10m'
+}

@@ -7,6 +7,7 @@ import iorihuang.bankaccountmanager.exception.AccountError;
 import iorihuang.bankaccountmanager.exception.AccountException;
 import iorihuang.bankaccountmanager.exception.exception.AccountNotFoundException;
 import iorihuang.bankaccountmanager.exception.exception.AccountParamException;
+import iorihuang.bankaccountmanager.exception.exception.AccountTransferException;
 import iorihuang.bankaccountmanager.exception.exception.InsufficientBalanceException;
 import iorihuang.bankaccountmanager.helper.snowflakeid.SnowFlakeIdHelper;
 import iorihuang.bankaccountmanager.helper.snowflakeid.SnowFlakeIdProperties;
@@ -103,6 +104,62 @@ class BankAccountTransferTest {
         BankTransferDTO dto = service.transfer(new TransferRequest().setFromAccountNumber("A001").setToAccountNumber("A002").setAmount("0.560807"));
         assertEquals("100.000000", dto.getFrom().getBalance());
         assertEquals("1.000000", dto.getTo().getBalance());
+    }
+
+    @Test
+    void transfer_same_account() throws AccountError, AccountException {
+        BankAccount from = BankAccount.builder().state(AccountState.ACTIVE.getCode()).id(1L).accountNumber("A001").balance(new BigDecimal("100.00")).build();
+        BankAccount to = BankAccount.builder().state(AccountState.ACTIVE.getCode()).id(2L).accountNumber("A002").balance(new BigDecimal("50.00")).build();
+        when(repository.findByAccountNumber("A001")).thenReturn(Optional.of(from));
+        when(repository.findByAccountNumber("A002")).thenReturn(Optional.of(to));
+        when(trans.transfer(any(), any(), any(), anyLong(), any(), any(), any())).thenReturn(LocalDateTime.now());
+        TransferRequest req = new TransferRequest();
+        req.setFromAccountNumber("A001");
+        req.setToAccountNumber("A001");
+        req.setAmount(new BigDecimal("30.00").toString());
+        assertThrows(AccountParamException.class, () -> service.transfer(req));
+    }
+
+    @Test
+    void transfer_null_amount() throws AccountError, AccountException {
+        BankAccount from = BankAccount.builder().state(AccountState.ACTIVE.getCode()).id(1L).accountNumber("A001").balance(new BigDecimal("100.00")).build();
+        BankAccount to = BankAccount.builder().state(AccountState.ACTIVE.getCode()).id(2L).accountNumber("A002").balance(new BigDecimal("50.00")).build();
+        when(repository.findByAccountNumber("A001")).thenReturn(Optional.of(from));
+        when(repository.findByAccountNumber("A002")).thenReturn(Optional.of(to));
+        when(trans.transfer(any(), any(), any(), anyLong(), any(), any(), any())).thenReturn(LocalDateTime.now());
+        TransferRequest req = new TransferRequest();
+        req.setFromAccountNumber("A001");
+        req.setToAccountNumber("A002");
+        req.setAmount(null);
+        assertThrows(AccountParamException.class, () -> service.transfer(req));
+    }
+
+    @Test
+    void transfer_account_not_active() throws AccountError, AccountException {
+        BankAccount from = BankAccount.builder().state(AccountState.CLOSED.getCode()).id(1L).accountNumber("A001").balance(new BigDecimal("100.00")).build();
+        BankAccount to = BankAccount.builder().state(AccountState.ACTIVE.getCode()).id(2L).accountNumber("A002").balance(new BigDecimal("50.00")).build();
+        when(repository.findByAccountNumber("A001")).thenReturn(Optional.of(from));
+        when(repository.findByAccountNumber("A002")).thenReturn(Optional.of(to));
+        when(trans.transfer(any(), any(), any(), anyLong(), any(), any(), any())).thenReturn(LocalDateTime.now());
+        TransferRequest req = new TransferRequest();
+        req.setFromAccountNumber("A001");
+        req.setToAccountNumber("A002");
+        req.setAmount("2333");
+        assertThrows(AccountTransferException.class, () -> service.transfer(req));
+    }
+
+    @Test
+    void transfer_account_not_active2() throws AccountError, AccountException {
+        BankAccount from = BankAccount.builder().state(AccountState.ACTIVE.getCode()).id(1L).accountNumber("A001").balance(new BigDecimal("100.00")).build();
+        BankAccount to = BankAccount.builder().state(AccountState.CLOSED.getCode()).id(2L).accountNumber("A002").balance(new BigDecimal("50.00")).build();
+        when(repository.findByAccountNumber("A001")).thenReturn(Optional.of(from));
+        when(repository.findByAccountNumber("A002")).thenReturn(Optional.of(to));
+        when(trans.transfer(any(), any(), any(), anyLong(), any(), any(), any())).thenReturn(LocalDateTime.now());
+        TransferRequest req = new TransferRequest();
+        req.setFromAccountNumber("A001");
+        req.setToAccountNumber("A002");
+        req.setAmount("1");
+        assertThrows(AccountTransferException.class, () -> service.transfer(req));
     }
 
     @Test

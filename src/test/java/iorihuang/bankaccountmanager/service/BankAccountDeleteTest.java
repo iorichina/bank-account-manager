@@ -85,8 +85,8 @@ class BankAccountDeleteTest {
     }
 
     @Test
-    void deleteAccount_byId_success() throws AccountError, AccountException {
-        BankAccount acc = BankAccount.builder().id(1L).accountNumber("A001").balance(BigDecimal.ZERO).state(1).build();
+    void deleteAccount_frozen_success() throws AccountError, AccountException {
+        BankAccount acc = BankAccount.builder().id(1L).accountNumber("A001").balance(BigDecimal.ONE).state(1).build();
         when(repository.findByAccountNumber("A001")).thenReturn(Optional.of(acc));
         when(verHelper.genId()).thenReturn(100L, 100L, 100L, 100L, 100L, 100L);
         when(trans.deleteAccount(any(), eq(AccountState.fromCodeSafe(acc.getState())), anyLong(), any())).thenReturn(LocalDateTime.now());
@@ -94,8 +94,20 @@ class BankAccountDeleteTest {
     }
 
     @Test
-    void deleteAccount_byId_notFound() {
-        when(repository.findByAccountNumber("2L")).thenReturn(Optional.empty());
-        assertThrows(AccountNotFoundException.class, () -> service.deleteAccount("2L"));
+    void deleteAccount_closed() throws AccountError, AccountException {
+        BankAccount acc = BankAccount.builder().id(1L).accountNumber("A001").balance(BigDecimal.ZERO).state(AccountState.CLOSED.getCode()).build();
+        when(repository.findByAccountNumber("A001")).thenReturn(Optional.of(acc));
+        when(verHelper.genId()).thenReturn(100L, 100L, 100L, 100L, 100L, 100L);
+        when(trans.deleteAccount(any(), eq(AccountState.fromCodeSafe(acc.getState())), anyLong(), any())).thenReturn(LocalDateTime.now());
+        assertThrows(DeleteAccountException.class, () -> service.deleteAccount("A001"));
+    }
+
+    @Test
+    void deleteAccount_frozen2() throws AccountError, AccountException {
+        BankAccount acc = BankAccount.builder().id(1L).accountNumber("A001").balance(BigDecimal.ONE).state(AccountState.FROZEN.getCode()).build();
+        when(repository.findByAccountNumber("A001")).thenReturn(Optional.of(acc));
+        when(verHelper.genId()).thenReturn(100L, 100L, 100L, 100L, 100L, 100L);
+        when(trans.deleteAccount(any(), eq(AccountState.fromCodeSafe(acc.getState())), anyLong(), any())).thenReturn(LocalDateTime.now());
+        assertThrows(DeleteAccountException.class, () -> service.deleteAccount("A001"));
     }
 }
