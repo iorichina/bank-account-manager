@@ -1,6 +1,8 @@
 package iorihuang.bankaccountmanager.service;
 
 import iorihuang.bankaccountmanager.dto.BankAccountDTO;
+import iorihuang.bankaccountmanager.exception.AccountError;
+import iorihuang.bankaccountmanager.exception.AccountException;
 import iorihuang.bankaccountmanager.exception.exception.AccountNotFoundException;
 import iorihuang.bankaccountmanager.model.BankAccount;
 import iorihuang.bankaccountmanager.repository.BankAccountRepository;
@@ -29,7 +31,7 @@ class BankAccountGetTest {
     }
 
     @Test
-    void getAccount_success() {
+    void getAccount_success() throws AccountError, AccountException {
         BankAccount acc = BankAccount.builder().id(1L).accountNumber("A001").ownerName("张三").balance(new BigDecimal("100.00")).build();
         when(repository.findByAccountNumber("A001")).thenReturn(Optional.of(acc));
         BankAccountDTO dto = service.getAccount("A001");

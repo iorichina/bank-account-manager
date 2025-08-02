@@ -190,13 +190,14 @@ public class BankAccountServiceImpl implements BankAccountService {
         // This ensures data integrity and prevents accidental loss of funds.
         AccountState newState = AccountState.CLOSED;
         if (account.getBalance().compareTo(BigDecimal.ZERO) > 0) {
-            log.warn("Account has balance, cannot delete: {}", accountNumber);
-            //            throw AccountExceptions.accountHasBalance(accountNumber);
+            // log.warn("Account has balance, cannot delete: {}", accountNumber);
+            // throw AccountExceptions.accountHasBalance(accountNumber);
             //账号状态不应该为frozen
             if (Objects.equals(AccountState.FROZEN.getCode(), account.getState())) {
-                log.warn("Account is frozen, cannot frozen: {}", accountNumber);
+                log.warn("Account is frozen, cannot delete and frozen: {}", accountNumber);
                 throw new DeleteAccountException("Account is frozen with positive balance, cannot delete: " + accountNumber);
             }
+            log.warn("Account has balance, frozen instead of delete : {}", accountNumber);
             newState = AccountState.FROZEN;
         }
         BankAccountChangeLog changeLog = BankAccountChangeLog.builder()
@@ -204,7 +205,7 @@ public class BankAccountServiceImpl implements BankAccountService {
                 .accountNumber(account.getAccountNumber())
                 .ownerId(account.getOwnerId())
                 .changeType(newState == AccountState.CLOSED ? 2 : 4) // 2:Close, 4:Frozen
-                .changeDesc(newState == AccountState.CLOSED ? "销户" : "冻结")
+                .changeDesc(newState == AccountState.CLOSED ? "销户" : "有余额无法销户，仅冻结")
                 .beforeState(account.getState())
                 .afterState(newState.getCode())
                 .beforeOwnerName(account.getOwnerName())
@@ -260,6 +261,7 @@ public class BankAccountServiceImpl implements BankAccountService {
             throw AccountExceptions.deleteFailWithClosed(accountNumber);
         }
 
+        // Validate request parameters
         String ownerName = request.getOwnerName();
         String contactInfo = request.getContactInfo();
         if (Objects.isNull(ownerName) || Objects.isNull(contactInfo) || ownerName.isEmpty() || contactInfo.isEmpty()) {
@@ -267,7 +269,14 @@ public class BankAccountServiceImpl implements BankAccountService {
             log.warn(message);
             throw new AccountParamException(message);
         }
-        Long newVersion = verHelper.genId();
+
+        // no change
+        if (Objects.equals(ownerName, account.getOwnerName()) && Objects.equals(contactInfo, account.getContactInfo())) {
+            log.info("Account update with no change:{}", accountNumber);
+            return toSimpleDTO(account);
+        }
+
+        long newVersion = verHelper.genId();
         BankAccountChangeLog changeLog = BankAccountChangeLog.builder()
                 .accountId(account.getId())
                 .accountNumber(account.getAccountNumber())
@@ -483,7 +492,7 @@ public class BankAccountServiceImpl implements BankAccountService {
     }
 
     /**
-     * account info with cache
+     * account info with cache, should return account info even if account is closed
      *
      * @param accountNumber
      * @return account event if account is closed

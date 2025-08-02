@@ -1,5 +1,7 @@
 package iorihuang.bankaccountmanager.service;
 
+import iorihuang.bankaccountmanager.config.SnowFlakeIdAutoConfig;
+import iorihuang.bankaccountmanager.dto.BankTransferDTO;
 import iorihuang.bankaccountmanager.dto.TransferRequest;
 import iorihuang.bankaccountmanager.exception.AccountError;
 import iorihuang.bankaccountmanager.exception.AccountException;
@@ -7,8 +9,10 @@ import iorihuang.bankaccountmanager.exception.exception.AccountNotFoundException
 import iorihuang.bankaccountmanager.exception.exception.AccountParamException;
 import iorihuang.bankaccountmanager.exception.exception.InsufficientBalanceException;
 import iorihuang.bankaccountmanager.helper.snowflakeid.SnowFlakeIdHelper;
+import iorihuang.bankaccountmanager.helper.snowflakeid.SnowFlakeIdProperties;
 import iorihuang.bankaccountmanager.model.BankAccount;
 import iorihuang.bankaccountmanager.model.bankaccount.AccountState;
+import iorihuang.bankaccountmanager.model.bankaccount.AccountType;
 import iorihuang.bankaccountmanager.repository.BankAccountRepository;
 import iorihuang.bankaccountmanager.repository.BankAccountTrans;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,13 +20,13 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.Spy;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
@@ -32,10 +36,14 @@ class BankAccountTransferTest {
     private BankAccountRepository repository;
     @Mock
     private BankAccountTrans trans;
-    @Mock
-    private SnowFlakeIdHelper idHelper;
-    @Mock
-    private SnowFlakeIdHelper verHelper;
+    //    @Mock
+//    private SnowFlakeIdHelper idHelper;
+//    @Mock
+//    private SnowFlakeIdHelper verHelper;
+    @Spy
+    private SnowFlakeIdHelper idHelper = new SnowFlakeIdAutoConfig().idHelper(new SnowFlakeIdProperties());
+    @Spy
+    private SnowFlakeIdHelper verHelper = new SnowFlakeIdAutoConfig().verHelper(new SnowFlakeIdProperties());
     @InjectMocks
     private BankAccountServiceImpl service;
 
@@ -56,6 +64,82 @@ class BankAccountTransferTest {
         req.setToAccountNumber("A002");
         req.setAmount(new BigDecimal("30.00").toString());
         assertDoesNotThrow(() -> service.transfer(req));
+    }
+
+    @Test
+    void transfer_success_balance() throws AccountError, AccountException {
+        BankAccount from = BankAccount.builder()
+                .id(idHelper.genId())
+                .accountNumber("A001")
+                .accountType(AccountType.SAVINGS.getCode())
+                .ownerId("4500003333000x")
+                .ownerName("张三")
+                .contactInfo("13800000000")
+                .balance(new BigDecimal("100.560807"))
+                .balanceAt(LocalDateTime.now())
+                .state(AccountState.ACTIVE.getCode())
+                .version(verHelper.genId())
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .deletedAt(LocalDateTime.now())
+                .build();
+        BankAccount to = BankAccount.builder()
+                .id(idHelper.genId())
+                .accountNumber("A002")
+                .accountType(AccountType.SAVINGS.getCode())
+                .ownerId("4500003333000x")
+                .ownerName("张四")
+                .contactInfo("13900000000")
+                .balance(new BigDecimal("0.439193"))
+                .balanceAt(LocalDateTime.now())
+                .state(AccountState.ACTIVE.getCode())
+                .version(verHelper.genId())
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .deletedAt(LocalDateTime.now())
+                .build();
+        when(repository.findByAccountNumber("A001")).thenReturn(Optional.of(from), Optional.of(to));
+        when(repository.findByAccountNumber("A002")).thenReturn(Optional.of(to), Optional.of(from));
+        BankTransferDTO dto = service.transfer(new TransferRequest().setFromAccountNumber("A001").setToAccountNumber("A002").setAmount("0.560807"));
+        assertEquals("100.000000", dto.getFrom().getBalance());
+        assertEquals("1.000000", dto.getTo().getBalance());
+    }
+
+    @Test
+    void transfer_insufficient() {
+        BankAccount from = BankAccount.builder()
+                .id(idHelper.genId())
+                .accountNumber("A001")
+                .accountType(AccountType.SAVINGS.getCode())
+                .ownerId("4500003333000x")
+                .ownerName("张三")
+                .contactInfo("13800000000")
+                .balance(BigDecimal.valueOf(100))
+                .balanceAt(LocalDateTime.now())
+                .state(AccountState.ACTIVE.getCode())
+                .version(verHelper.genId())
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .deletedAt(LocalDateTime.now())
+                .build();
+        BankAccount to = BankAccount.builder()
+                .id(idHelper.genId())
+                .accountNumber("A002")
+                .accountType(AccountType.SAVINGS.getCode())
+                .ownerId("4500003333000x")
+                .ownerName("张四")
+                .contactInfo("13900000000")
+                .balance(BigDecimal.valueOf(101))
+                .balanceAt(LocalDateTime.now())
+                .state(AccountState.ACTIVE.getCode())
+                .version(verHelper.genId())
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .deletedAt(LocalDateTime.now())
+                .build();
+        when(repository.findByAccountNumber("A001")).thenReturn(Optional.of(from));
+        when(repository.findByAccountNumber("A002")).thenReturn(Optional.of(to));
+        assertThrows(InsufficientBalanceException.class, () -> service.transfer(new TransferRequest().setFromAccountNumber("A001").setToAccountNumber("A002").setAmount(BigDecimal.valueOf(300).toString())));
     }
 
     @Test

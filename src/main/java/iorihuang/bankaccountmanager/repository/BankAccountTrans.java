@@ -83,7 +83,7 @@ public class BankAccountTrans {
      * @return updated time
      */
     @Transactional(rollbackFor = Throwable.class, isolation = Isolation.REPEATABLE_READ, propagation = Propagation.REQUIRES_NEW)
-    public LocalDateTime updateAccount(BankAccount account, String ownerName, String contactInfo, long newVersion, BankAccountChangeLog changeLog) throws AccountError {
+    public LocalDateTime updateAccount(BankAccount account, String ownerName, String contactInfo, long newVersion, BankAccountChangeLog changeLog) throws AccountError, AccountException {
         LocalDateTime now = LocalDateTime.now();
         String accountNumber = account.getAccountNumber();
         try {
@@ -105,6 +105,9 @@ public class BankAccountTrans {
                 changeLogRepository.save(changeLog);
             }
         } catch (Exception e) {
+            if (e instanceof AccountException) {
+                throw e;
+            }
             throw new AccountUpdateError(e, "Account update error: " + account.getAccountNumber());
         }
         return now;
@@ -120,7 +123,7 @@ public class BankAccountTrans {
      * @return delete timestamp
      */
     @Transactional(rollbackFor = Throwable.class, isolation = Isolation.REPEATABLE_READ, propagation = Propagation.REQUIRES_NEW)
-    public LocalDateTime deleteAccount(BankAccount account, AccountState newState, long newVersion, BankAccountChangeLog changeLog) throws AccountError {
+    public LocalDateTime deleteAccount(BankAccount account, AccountState newState, long newVersion, BankAccountChangeLog changeLog) throws AccountError, AccountException {
         String accountNumber = account.getAccountNumber();
         LocalDateTime now = LocalDateTime.now();
         try {
@@ -156,6 +159,9 @@ public class BankAccountTrans {
                 changeLogRepository.save(changeLog);
             }
         } catch (Exception e) {
+            if (e instanceof AccountException) {
+                throw e;
+            }
             throw new AccountDeleteError(e, "Account delete error: " + account.getAccountNumber());
         }
         return now;
@@ -197,6 +203,9 @@ public class BankAccountTrans {
                 balanceLogRepository.save(toBalanceLog);
             }
         } catch (Exception e) {
+            if (e instanceof AccountException) {
+                throw e;
+            }
             throw new AccountTransferError(e, "Account transfer error from " + from.getAccountNumber() + " to " + to.getAccountNumber());
         }
         return now;

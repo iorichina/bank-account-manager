@@ -1,12 +1,15 @@
 package iorihuang.bankaccountmanager.service;
 
+import iorihuang.bankaccountmanager.config.SnowFlakeIdAutoConfig;
 import iorihuang.bankaccountmanager.dto.BankAccountDTO;
 import iorihuang.bankaccountmanager.dto.CreateAccountRequest;
 import iorihuang.bankaccountmanager.exception.AccountError;
 import iorihuang.bankaccountmanager.exception.AccountException;
 import iorihuang.bankaccountmanager.exception.exception.DuplicateAccountException;
 import iorihuang.bankaccountmanager.helper.snowflakeid.SnowFlakeIdHelper;
+import iorihuang.bankaccountmanager.helper.snowflakeid.SnowFlakeIdProperties;
 import iorihuang.bankaccountmanager.model.BankAccount;
+import iorihuang.bankaccountmanager.model.bankaccount.AccountType;
 import iorihuang.bankaccountmanager.repository.BankAccountRepository;
 import iorihuang.bankaccountmanager.repository.BankAccountTrans;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.Spy;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -28,10 +32,14 @@ class BankAccountCreateTest {
     private BankAccountRepository repository;
     @Mock
     private BankAccountTrans trans;
-    @Mock
-    private SnowFlakeIdHelper idHelper;
-    @Mock
-    private SnowFlakeIdHelper verHelper;
+    //    @Mock
+//    private SnowFlakeIdHelper idHelper;
+//    @Mock
+//    private SnowFlakeIdHelper verHelper;
+    @Spy
+    private SnowFlakeIdHelper idHelper = new SnowFlakeIdAutoConfig().idHelper(new SnowFlakeIdProperties());
+    @Spy
+    private SnowFlakeIdHelper verHelper = new SnowFlakeIdAutoConfig().verHelper(new SnowFlakeIdProperties());
     @InjectMocks
     private BankAccountServiceImpl service;
 
@@ -47,7 +55,6 @@ class BankAccountCreateTest {
         req.setOwnerId("4500003333000x");
         req.setOwnerName("张三");
         req.setContactInfo("13800000000");
-        req.setInitialBalance("100.00");
         req.setAccountType(1);
         when(repository.findByAccountNumber("A001")).thenReturn(Optional.empty());
         when(idHelper.genId()).thenReturn(1L);
@@ -58,7 +65,7 @@ class BankAccountCreateTest {
                 .ownerId("4500003333000x")
                 .ownerName("张三")
                 .contactInfo("13800000000")
-                .balance(new BigDecimal("100.00"))
+                .balance(new BigDecimal("0.00"))
                 .accountType(1)
                 .state(1)
                 .version(100L)
@@ -67,7 +74,24 @@ class BankAccountCreateTest {
         BankAccountDTO dto = service.createAccount(req);
         assertEquals("A001", dto.getAccountNumber());
         assertEquals("张三", dto.getOwnerName());
-        assertEquals("100.000000", dto.getBalance());
+        assertEquals("0.000000", dto.getBalance());
+    }
+
+    @Test
+    void createAccount_success_initialBalance() throws AccountError, AccountException {
+        CreateAccountRequest req = new CreateAccountRequest();
+        req.setAccountNumber("A001");
+        req.setAccountType(AccountType.SAVINGS.getCode());
+        req.setOwnerId("4500003333000x");
+        req.setOwnerName("张三");
+        req.setContactInfo("13800000000");
+        req.setInitialBalance(new BigDecimal("105.32085").toString());
+        when(repository.findByAccountNumber("A001")).thenReturn(Optional.empty());
+        when(trans.createAccount(any(), any(), any())).thenAnswer(i -> i.getArgument(0));
+        BankAccountDTO dto = service.createAccount(req);
+        assertEquals("A001", dto.getAccountNumber());
+        assertEquals("张三", dto.getOwnerName());
+        assertEquals("105.320850", dto.getBalance());
     }
 
     @Test
@@ -75,6 +99,21 @@ class BankAccountCreateTest {
         CreateAccountRequest req = new CreateAccountRequest();
         req.setAccountNumber("A001");
         when(repository.findByAccountNumber("A001")).thenReturn(Optional.of(new BankAccount()));
+        assertThrows(DuplicateAccountException.class, () -> service.createAccount(req));
+    }
+
+    @Test
+    void createAccount_duplicate_by_trans() throws AccountError, AccountException {
+        CreateAccountRequest req = new CreateAccountRequest();
+        req.setAccountNumber("A001");
+        req.setAccountType(AccountType.SAVINGS.getCode());
+        req.setOwnerId("4500003333000x");
+        req.setOwnerName("张三");
+        req.setContactInfo("13800000000");
+        req.setInitialBalance(new BigDecimal("105.32085").toString());
+        when(repository.findByAccountNumber("A001")).thenReturn(Optional.empty());
+        when(trans.createAccount(any(), any(), any())).thenThrow(new DuplicateAccountException("Duplicate account"));
+        // Simulate the transaction layer throwing a DuplicateAccountException
         assertThrows(DuplicateAccountException.class, () -> service.createAccount(req));
     }
 
