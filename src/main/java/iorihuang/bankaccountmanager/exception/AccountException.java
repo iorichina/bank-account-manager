@@ -3,7 +3,7 @@ package iorihuang.bankaccountmanager.exception;
 import lombok.Getter;
 
 @Getter
-public class AccountException extends RuntimeException implements CodeE {
+public class AccountException extends Exception implements CodeE {
     private int code;
 
     public AccountException(int code, String message) {

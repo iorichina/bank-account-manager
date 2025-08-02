@@ -3,8 +3,9 @@ package iorihuang.bankaccountmanager.controller;
 import io.micrometer.observation.annotation.Observed;
 import iorihuang.bankaccountmanager.dto.BankAccountDTO;
 import iorihuang.bankaccountmanager.dto.CreateAccountRequest;
-import iorihuang.bankaccountmanager.dto.Empty;
 import iorihuang.bankaccountmanager.dto.UpdateAccountRequest;
+import iorihuang.bankaccountmanager.exception.AccountError;
+import iorihuang.bankaccountmanager.exception.AccountException;
 import iorihuang.bankaccountmanager.service.BankAccountService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +31,7 @@ public class BankAccountController extends BaseController {
      */
     @PostMapping("/create")
     @Observed(name = "bank.account.create")
-    public ResponseEntity<?> create(@RequestBody @Valid CreateAccountRequest request) {
+    public ResponseEntity<?> create(@RequestBody @Valid CreateAccountRequest request) throws AccountError, AccountException {
         BankAccountDTO dto = service.createAccount(request);
         return buildResponse(dto);
     }
@@ -42,9 +43,9 @@ public class BankAccountController extends BaseController {
      */
     @DeleteMapping("/delete/{accountNumber}")
     @Observed(name = "bank.account.delete")
-    public ResponseEntity<?> delete(@PathVariable String accountNumber) {
-        service.deleteAccount(accountNumber);
-        return buildResponse(new Empty());
+    public ResponseEntity<?> delete(@PathVariable String accountNumber) throws AccountError, AccountException {
+        BankAccountDTO dto = service.deleteAccount(accountNumber);
+        return buildResponse(dto);
     }
 
     /**
@@ -54,7 +55,7 @@ public class BankAccountController extends BaseController {
      */
     @PutMapping("/update/{accountNumber}")
     @Observed(name = "bank.account.update")
-    public ResponseEntity<?> update(@PathVariable String accountNumber, @RequestBody @Valid UpdateAccountRequest request) {
+    public ResponseEntity<?> update(@PathVariable String accountNumber, @RequestBody @Valid UpdateAccountRequest request) throws AccountError, AccountException {
         BankAccountDTO dto = service.updateAccount(accountNumber, request);
         return buildResponse(dto);
     }

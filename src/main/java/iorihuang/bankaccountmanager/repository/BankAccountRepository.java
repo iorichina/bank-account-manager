@@ -7,7 +7,6 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -29,13 +28,15 @@ public interface BankAccountRepository extends JpaRepository<BankAccount, Long> 
      * @param limit
      * @return
      */
-    @Query(value = "SELECT id, account_number, account_type, owner_id, owner_name, contact_info, balance, balance_at, state, ver, created_at, updated_at, delete_at FROM bank_account WHERE state = :state AND id < :lastId ORDER BY id DESC LIMIT :limit",
+    @Query(value = "SELECT id, account_number, account_type, owner_id, owner_name, contact_info, balance, balance_at, state, ver, created_at, updated_at, deleted_at FROM bank_account WHERE state = :state AND id < :lastId ORDER BY id DESC LIMIT :limit",
             nativeQuery = true)
     @Observed(name = "bank.account.repository.find-by-state")
     List<BankAccount> findByState(int state, long lastId, int limit);
 
     /**
      * Find account by account number, used only for unique index precise lookup
+     * <p>
+     * using nativeQuery to avoid JPA query cache
      */
     @Observed(name = "bank.account.repository.find-by-account-number")
     Optional<BankAccount> findByAccountNumber(String accountNumber);
@@ -53,11 +54,10 @@ public interface BankAccountRepository extends JpaRepository<BankAccount, Long> 
      * @return Number of updated records
      */
     @Modifying
-    @Transactional
     @Query(value = """
             UPDATE bank_account SET
              state = :newState,
-             update_at = :updateAt,
+             updated_at = :updateAt,
              ver = :newVersion
              WHERE id = :id AND account_number = :accountNumber AND state = :state AND ver = :version limit 1""",
             nativeQuery = true)
@@ -79,15 +79,14 @@ public interface BankAccountRepository extends JpaRepository<BankAccount, Long> 
      * @param state         Current state (condition)
      * @param version       Version number (condition)
      * @param newState      New state (update value)
-     * @param deleteAt      Deletion timestamp (update value)
+     * @param deletedAt     Deletion timestamp (update value)
      * @param newVersion    New version number (update value)
      * @return Number of updated records
      */
     @Modifying
-    @Transactional
     @Query(value = "UPDATE bank_account SET " +
             "state = :newState, " +
-            "delete_at = :deleteAt, " +
+            "deleted_at = :deletedAt, " +
             "ver = :newVersion " +
             "WHERE id = :id AND account_number = :accountNumber AND state = :state AND ver = :version and balance = 0 limit 1",
             nativeQuery = true)
@@ -98,7 +97,7 @@ public interface BankAccountRepository extends JpaRepository<BankAccount, Long> 
             @Param("state") int state,
             @Param("version") long version,
             @Param("newState") int newState,
-            @Param("deleteAt") LocalDateTime deleteAt,
+            @Param("deletedAt") LocalDateTime deletedAt,
             @Param("newVersion") long newVersion);
 
     /**
@@ -115,7 +114,6 @@ public interface BankAccountRepository extends JpaRepository<BankAccount, Long> 
      * @return Number of updated records
      */
     @Modifying
-    @Transactional
     @Query(value = "UPDATE bank_account SET " +
             "owner_name = :ownerName, " +
             "contact_info = :contactInfo, " +
@@ -148,7 +146,6 @@ public interface BankAccountRepository extends JpaRepository<BankAccount, Long> 
      * @return
      */
     @Modifying
-    @Transactional
     @Query(value = "UPDATE bank_account SET " +
             "balance = balance - :amount, " +
             "updated_at = :updatedAt, " +
@@ -180,7 +177,6 @@ public interface BankAccountRepository extends JpaRepository<BankAccount, Long> 
      * @return
      */
     @Modifying
-    @Transactional
     @Query(value = "UPDATE bank_account SET " +
             "balance = balance + :amount, " +
             "updated_at = :updatedAt, " +

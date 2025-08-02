@@ -2,7 +2,7 @@
  *  created by iorihuang 20-9-21 下午10:32
  */
 
-package iorihuang.bankaccountmanager.helper.snowflakeid;
+package iorihuang.bankaccountmanager.util;
 
 import java.net.NetworkInterface;
 import java.net.SocketException;

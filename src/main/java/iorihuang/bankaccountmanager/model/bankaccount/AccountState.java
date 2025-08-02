@@ -7,6 +7,7 @@ import lombok.Getter;
  */
 @Getter
 public enum AccountState {
+    NONE(-1, "None"),
     ACTIVE(1, "Active"),
     FROZEN(2, "Frozen"),
     CLOSED(4, "Closed");

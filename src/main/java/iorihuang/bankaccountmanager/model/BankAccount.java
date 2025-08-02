@@ -62,7 +62,7 @@ public class BankAccount {
     private LocalDateTime updatedAt;
 
     @Column
-    private LocalDateTime deleteAt;
+    private LocalDateTime deletedAt;
 
     /**
      * Get account type as enum

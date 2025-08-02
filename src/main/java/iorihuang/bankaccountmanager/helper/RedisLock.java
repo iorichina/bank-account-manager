@@ -4,7 +4,6 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 
 import java.time.Duration;
-import java.util.UUID;
 
 /**
  * Redis distributed lock that supports automatic release via try-with-resources
@@ -19,7 +18,7 @@ public class RedisLock implements AutoCloseable {
     public RedisLock(StringRedisTemplate redisTemplate, String lockKey, long expireSeconds) {
         this.redisTemplate = redisTemplate;
         this.lockKey = lockKey;
-        this.lockValue = UUID.randomUUID().toString();
+        this.lockValue = String.valueOf(System.currentTimeMillis());
         this.expireSeconds = expireSeconds;
         this.locked = tryLock();
     }

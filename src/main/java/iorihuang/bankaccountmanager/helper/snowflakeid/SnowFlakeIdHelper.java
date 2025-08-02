@@ -2,6 +2,7 @@ package iorihuang.bankaccountmanager.helper.snowflakeid;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import iorihuang.bankaccountmanager.util.NetworkUtils;
 import lombok.Getter;
 
 import java.time.Instant;

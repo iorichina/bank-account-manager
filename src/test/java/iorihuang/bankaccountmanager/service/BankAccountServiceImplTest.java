@@ -2,6 +2,8 @@ package iorihuang.bankaccountmanager.service;
 
 import iorihuang.bankaccountmanager.config.SnowFlakeIdAutoConfig;
 import iorihuang.bankaccountmanager.dto.*;
+import iorihuang.bankaccountmanager.exception.AccountError;
+import iorihuang.bankaccountmanager.exception.AccountException;
 import iorihuang.bankaccountmanager.exception.exception.AccountNotFoundException;
 import iorihuang.bankaccountmanager.exception.exception.DuplicateAccountException;
 import iorihuang.bankaccountmanager.exception.exception.InsufficientBalanceException;
@@ -47,7 +49,7 @@ class BankAccountServiceImplTest {
     }
 
     @Test
-    void createAccount_success() {
+    void createAccount_success() throws AccountError, AccountException {
         CreateAccountRequest req = new CreateAccountRequest();
         req.setAccountNumber("A001");
         req.setAccountType(AccountType.SAVINGS.getCode());
@@ -56,7 +58,7 @@ class BankAccountServiceImplTest {
         req.setContactInfo("13800000000");
         req.setInitialBalance(BigDecimal.valueOf(100).toString());
         when(repository.findByAccountNumber("A001")).thenReturn(Optional.empty());
-        when(trans.createAccount(any())).thenAnswer(i -> i.getArgument(0));
+        when(trans.createAccount(any(), any(), any())).thenAnswer(i -> i.getArgument(0));
         BankAccountDTO dto = service.createAccount(req);
         assertEquals("A001", dto.getAccountNumber());
         assertEquals("张三", dto.getOwnerName());
@@ -78,7 +80,7 @@ class BankAccountServiceImplTest {
     }
 
     @Test
-    void updateAccount_success() {
+    void updateAccount_success() throws AccountError {
         BankAccount acc = BankAccount.builder()
                 .id(idHelper.genId())
                 .accountNumber("A001")
@@ -92,7 +94,7 @@ class BankAccountServiceImplTest {
                 .version(verHelper.genId())
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
-                .deleteAt(LocalDateTime.now())
+                .deletedAt(LocalDateTime.now())
                 .build();
         BankAccount acc2 = BankAccount.builder()
                 .id(idHelper.genId())
@@ -107,10 +109,10 @@ class BankAccountServiceImplTest {
                 .version(verHelper.genId())
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
-                .deleteAt(LocalDateTime.now())
+                .deletedAt(LocalDateTime.now())
                 .build();
         when(repository.findByAccountNumber("A001")).thenReturn(Optional.of(acc), Optional.of(acc2));
-        when(trans.updateAccount(any(), any(), any(), anyLong())).thenReturn(LocalDateTime.now());
+        when(trans.updateAccount(any(), any(), any(), anyLong(), any())).thenReturn(LocalDateTime.now());
         UpdateAccountRequest req = new UpdateAccountRequest();
         req.setOwnerName("李四");
         req.setContactInfo("13900000000");
@@ -134,7 +136,7 @@ class BankAccountServiceImplTest {
                 .version(verHelper.genId())
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
-                .deleteAt(LocalDateTime.now())
+                .deletedAt(LocalDateTime.now())
                 .build();
         BankAccount to = BankAccount.builder()
                 .id(idHelper.genId())
@@ -149,7 +151,7 @@ class BankAccountServiceImplTest {
                 .version(verHelper.genId())
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
-                .deleteAt(LocalDateTime.now())
+                .deletedAt(LocalDateTime.now())
                 .build();
         when(repository.findByAccountNumber("A001")).thenReturn(Optional.of(from), Optional.of(to));
         when(repository.findByAccountNumber("A002")).thenReturn(Optional.of(to), Optional.of(from));
@@ -173,7 +175,7 @@ class BankAccountServiceImplTest {
                 .version(verHelper.genId())
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
-                .deleteAt(LocalDateTime.now())
+                .deletedAt(LocalDateTime.now())
                 .build();
         BankAccount to = BankAccount.builder()
                 .id(idHelper.genId())
@@ -188,7 +190,7 @@ class BankAccountServiceImplTest {
                 .version(verHelper.genId())
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
-                .deleteAt(LocalDateTime.now())
+                .deletedAt(LocalDateTime.now())
                 .build();
         when(repository.findByAccountNumber("A001")).thenReturn(Optional.of(from));
         when(repository.findByAccountNumber("A002")).thenReturn(Optional.of(to));
@@ -210,7 +212,7 @@ class BankAccountServiceImplTest {
                 .version(verHelper.genId())
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
-                .deleteAt(LocalDateTime.now())
+                .deletedAt(LocalDateTime.now())
                 .build();
         BankAccount to = BankAccount.builder()
                 .id(idHelper.genId())
@@ -225,7 +227,7 @@ class BankAccountServiceImplTest {
                 .version(verHelper.genId())
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
-                .deleteAt(LocalDateTime.now())
+                .deletedAt(LocalDateTime.now())
                 .build();
         when(repository.findByState(anyInt(), anyLong(), eq(2))).thenReturn(List.of(from, to));
         BankAccountListDTO page = service.listAccounts(null, 1);

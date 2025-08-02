@@ -3,6 +3,8 @@ package iorihuang.bankaccountmanager.controller;
 import io.micrometer.observation.annotation.Observed;
 import iorihuang.bankaccountmanager.dto.BankTransferDTO;
 import iorihuang.bankaccountmanager.dto.TransferRequest;
+import iorihuang.bankaccountmanager.exception.AccountError;
+import iorihuang.bankaccountmanager.exception.AccountException;
 import iorihuang.bankaccountmanager.service.BankAccountService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +28,7 @@ public class BankAccountBalanceController extends BaseController {
 
     @PostMapping("/transfer")
     @Observed(name = "bank.account.transfer")
-    public ResponseEntity<?> transfer(@RequestBody @Valid TransferRequest request) {
+    public ResponseEntity<?> transfer(@RequestBody @Valid TransferRequest request) throws AccountError, AccountException {
         BankTransferDTO dto = service.transfer(request);
         return buildResponse(dto);
     }

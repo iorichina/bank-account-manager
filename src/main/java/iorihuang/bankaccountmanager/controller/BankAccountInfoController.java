@@ -3,6 +3,8 @@ package iorihuang.bankaccountmanager.controller;
 import io.micrometer.observation.annotation.Observed;
 import iorihuang.bankaccountmanager.dto.BankAccountDTO;
 import iorihuang.bankaccountmanager.dto.BankAccountListDTO;
+import iorihuang.bankaccountmanager.exception.AccountError;
+import iorihuang.bankaccountmanager.exception.AccountException;
 import iorihuang.bankaccountmanager.service.BankAccountService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +31,7 @@ public class BankAccountInfoController extends BaseController {
      */
     @GetMapping("/list")
     @Observed(name = "bank.account.list")
-    public ResponseEntity<?> list(@RequestParam(name = "last_id", required = false) Long lastId, @RequestParam(required = false) Integer size) {
+    public ResponseEntity<?> list(@RequestParam(name = "last_id", required = false) Long lastId, @RequestParam(required = false) Integer size) throws AccountError, AccountException {
         // TODO: Implement rate limiting to prevent abuse of the API
         BankAccountListDTO dto = service.listAccounts(lastId, size);
         return buildResponse(dto);
@@ -43,7 +45,7 @@ public class BankAccountInfoController extends BaseController {
      */
     @GetMapping("/{accountNumber}")
     @Observed(name = "bank.account.get")
-    public ResponseEntity<?> get(@PathVariable String accountNumber) {
+    public ResponseEntity<?> get(@PathVariable String accountNumber) throws AccountError, AccountException {
         BankAccountDTO dto = service.getAccount(accountNumber);
         return buildResponse(dto);
     }

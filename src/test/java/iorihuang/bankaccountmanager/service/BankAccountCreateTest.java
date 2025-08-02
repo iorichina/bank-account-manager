@@ -2,6 +2,8 @@ package iorihuang.bankaccountmanager.service;
 
 import iorihuang.bankaccountmanager.dto.BankAccountDTO;
 import iorihuang.bankaccountmanager.dto.CreateAccountRequest;
+import iorihuang.bankaccountmanager.exception.AccountError;
+import iorihuang.bankaccountmanager.exception.AccountException;
 import iorihuang.bankaccountmanager.exception.exception.DuplicateAccountException;
 import iorihuang.bankaccountmanager.helper.snowflakeid.SnowFlakeIdHelper;
 import iorihuang.bankaccountmanager.model.BankAccount;
@@ -39,7 +41,7 @@ class BankAccountCreateTest {
     }
 
     @Test
-    void createAccount_success() {
+    void createAccount_success() throws AccountError, AccountException {
         CreateAccountRequest req = new CreateAccountRequest();
         req.setAccountNumber("A001");
         req.setOwnerId("4500003333000x");
@@ -61,7 +63,7 @@ class BankAccountCreateTest {
                 .state(1)
                 .version(100L)
                 .build();
-        when(trans.createAccount(any())).thenReturn(account);
+        when(trans.createAccount(any(), any(), any())).thenReturn(account);
         BankAccountDTO dto = service.createAccount(req);
         assertEquals("A001", dto.getAccountNumber());
         assertEquals("张三", dto.getOwnerName());

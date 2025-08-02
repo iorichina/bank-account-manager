@@ -3,6 +3,8 @@ package iorihuang.bankaccountmanager.service;
 import io.micrometer.observation.annotation.Observed;
 import iorihuang.bankaccountmanager.constant.AccountConst;
 import iorihuang.bankaccountmanager.dto.*;
+import iorihuang.bankaccountmanager.exception.AccountError;
+import iorihuang.bankaccountmanager.exception.AccountException;
 import iorihuang.bankaccountmanager.exception.AccountExceptions;
 import iorihuang.bankaccountmanager.exception.ExpCode;
 import iorihuang.bankaccountmanager.exception.error.AccountReadError;
@@ -11,6 +13,9 @@ import iorihuang.bankaccountmanager.exception.exception.*;
 import iorihuang.bankaccountmanager.helper.RedisLock;
 import iorihuang.bankaccountmanager.helper.snowflakeid.SnowFlakeIdHelper;
 import iorihuang.bankaccountmanager.model.BankAccount;
+import iorihuang.bankaccountmanager.model.BankAccountBalanceLog;
+import iorihuang.bankaccountmanager.model.BankAccountChangeLog;
+import iorihuang.bankaccountmanager.model.BankAccountTransferLog;
 import iorihuang.bankaccountmanager.model.bankaccount.AccountState;
 import iorihuang.bankaccountmanager.model.bankaccount.AccountType;
 import iorihuang.bankaccountmanager.repository.BankAccountRepository;
@@ -41,15 +46,13 @@ import java.util.stream.Collectors;
 @Slf4j
 @Observed(name = "bank.account.service")
 public class BankAccountServiceImpl implements BankAccountService {
+    // lock before op
     @Autowired(required = false)
     private StringRedisTemplate redisTemplate;
     private final BankAccountRepository repository;
     private final BankAccountTrans trans;
     private final SnowFlakeIdHelper idHelper;
     private final SnowFlakeIdHelper verHelper;
-
-    //todo lock before op
-
 
     /**
      * Create a bank account
@@ -59,7 +62,7 @@ public class BankAccountServiceImpl implements BankAccountService {
      */
     @Override
     @Observed(name = "bank.account.service.create")
-    public BankAccountDTO createAccount(CreateAccountRequest request) {
+    public BankAccountDTO createAccount(CreateAccountRequest request) throws AccountError, AccountException {
         // Convert String initialBalance to BigDecimal
         BigDecimal balance = request.getInitialBalanceAsBigDecimal();
         if (null == balance) {
@@ -114,14 +117,38 @@ public class BankAccountServiceImpl implements BankAccountService {
                 .version(version) // Use custom version instead of default 0
                 .createdAt(now)
                 .updatedAt(now)
-                .deleteAt(now)
+                .deletedAt(now)
+                .build();
+        BankAccountChangeLog changeLog = BankAccountChangeLog.builder()
+                .accountId(accountId)
+                .accountNumber(accountNumber)
+                .ownerId(request.getOwnerId())
+                .changeType(1) // 1:Open Account
+                .changeDesc("开户")
+                .beforeState(AccountState.NONE.getCode())
+                .afterState(AccountState.ACTIVE.getCode())
+                .beforeOwnerName("")
+                .afterOwnerName(request.getOwnerName())
+                .beforeContactInfo("")
+                .afterContactInfo(request.getContactInfo())
+                .createdAt(now)
+                .build();
+        BankAccountBalanceLog balanceLog = BankAccountBalanceLog.builder()
+                .accountId(accountId)
+                .accountNumber(accountNumber)
+                .beforeBalance(BigDecimal.ZERO)
+                .afterBalance(balance)
+                .changeAmount(balance)
+                .changeType(1) // 1:开户
+                .changeDesc("开户初始入账")
+                .createdAt(now)
                 .build();
         // Redis distributed lock to prevent concurrent creation of the same account
         try (RedisLock lock = new RedisLock(redisTemplate, getLockKey(accountNumber), 3)) {
             if (!lock.isLocked()) {
                 throw new AccountConcurrentException("Failed to acquire account creation lock: " + accountNumber);
             }
-            account = trans.createAccount(account);
+            account = trans.createAccount(account, changeLog, balanceLog);
         } catch (Exception e) {
             log.error("createAccount fail with error:{}", accountNumber, e);
             throw e;
@@ -144,7 +171,7 @@ public class BankAccountServiceImpl implements BankAccountService {
     @Override
     @CacheEvict(value = "account", key = "#accountNumber")
     @Observed(name = "bank.account.service.delete")
-    public BankAccountDTO deleteAccount(String accountNumber) {
+    public BankAccountDTO deleteAccount(String accountNumber) throws AccountException, AccountError {
         Optional<BankAccount> accountOpt = getAccountByAccountNumber(accountNumber);
         if (accountOpt.isEmpty()) {
             log.warn("Account not found: {}", accountNumber);
@@ -156,17 +183,15 @@ public class BankAccountServiceImpl implements BankAccountService {
             log.warn("Account is closed: {}", accountNumber);
             throw AccountExceptions.deleteFailWithClosed(accountNumber);
         }
-
         // Generate new version using Snowflake algorithm
         long newVersion = verHelper.genId();
-
         // If the account has a balance, it cannot be directly deleted.
         // Instead, it should be frozen to prevent further transactions.
         // This ensures data integrity and prevents accidental loss of funds.
         AccountState newState = AccountState.CLOSED;
         if (account.getBalance().compareTo(BigDecimal.ZERO) > 0) {
             log.warn("Account has balance, cannot delete: {}", accountNumber);
-//            throw AccountExceptions.accountHasBalance(accountNumber);
+            //            throw AccountExceptions.accountHasBalance(accountNumber);
             //账号状态不应该为frozen
             if (Objects.equals(AccountState.FROZEN.getCode(), account.getState())) {
                 log.warn("Account is frozen, cannot frozen: {}", accountNumber);
@@ -174,21 +199,41 @@ public class BankAccountServiceImpl implements BankAccountService {
             }
             newState = AccountState.FROZEN;
         }
-
+        BankAccountChangeLog changeLog = BankAccountChangeLog.builder()
+                .accountId(account.getId())
+                .accountNumber(account.getAccountNumber())
+                .ownerId(account.getOwnerId())
+                .changeType(newState == AccountState.CLOSED ? 2 : 4) // 2:Close, 4:Frozen
+                .changeDesc(newState == AccountState.CLOSED ? "销户" : "冻结")
+                .beforeState(account.getState())
+                .afterState(newState.getCode())
+                .beforeOwnerName(account.getOwnerName())
+                .afterOwnerName(account.getOwnerName())
+                .beforeContactInfo(account.getContactInfo())
+                .afterContactInfo(account.getContactInfo())
+                .createdAt(LocalDateTime.now())
+                .build();
         // Redis distributed lock to prevent concurrent creation of the same account
         try (RedisLock lock = new RedisLock(redisTemplate, getLockKey(accountNumber), 3)) {
             if (!lock.isLocked()) {
                 throw new AccountConcurrentException("Failed to acquire account creation lock: " + accountNumber);
             }
-            trans.deleteAccount(account, newState, newVersion);
+            trans.deleteAccount(account, newState, newVersion, changeLog);
         } catch (Exception e) {
             log.error("Account delete fail with error:{}", accountNumber, e);
             throw e;
         }
 
-        log.info("Account delete success:{}", accountNumber);
-        accountOpt = getAccountByAccountNumber(accountNumber);
-        return accountOpt.map(this::toDTO).orElse(null);
+        switch (newState) {
+            case FROZEN:
+                log.info("Account try to delete but just frozen success:{}", accountNumber);
+                break;
+            case CLOSED:
+                log.info("Account delete success:{}", accountNumber);
+                break;
+        }
+
+        return accountOpt.map(this::toSimpleDTO).orElse(null);
     }
 
     /**
@@ -201,7 +246,7 @@ public class BankAccountServiceImpl implements BankAccountService {
     @Override
     @CachePut(value = "account", key = "#accountNumber")
     @Observed(name = "bank.account.service.update")
-    public BankAccountDTO updateAccount(String accountNumber, UpdateAccountRequest request) {
+    public BankAccountDTO updateAccount(String accountNumber, UpdateAccountRequest request) throws AccountException, AccountError {
         Optional<BankAccount> accountOpt = getAccountByAccountNumber(accountNumber);
         if (accountOpt.isEmpty()) {
             log.warn("Account not found: {}", accountNumber);
@@ -223,21 +268,33 @@ public class BankAccountServiceImpl implements BankAccountService {
             throw new AccountParamException(message);
         }
         Long newVersion = verHelper.genId();
-
+        BankAccountChangeLog changeLog = BankAccountChangeLog.builder()
+                .accountId(account.getId())
+                .accountNumber(account.getAccountNumber())
+                .ownerId(account.getOwnerId())
+                .changeType(3) // 3:Info Change
+                .changeDesc("信息变更")
+                .beforeState(account.getState())
+                .afterState(account.getState())
+                .beforeOwnerName(account.getOwnerName())
+                .afterOwnerName(ownerName)
+                .beforeContactInfo(account.getContactInfo())
+                .afterContactInfo(contactInfo)
+                .createdAt(LocalDateTime.now())
+                .build();
         // Redis distributed lock to prevent concurrent creation of the same account
         try (RedisLock lock = new RedisLock(redisTemplate, getLockKey(accountNumber), 3)) {
             if (!lock.isLocked()) {
                 throw new AccountConcurrentException("Failed to acquire account creation lock: " + accountNumber);
             }
-            trans.updateAccount(account, ownerName, contactInfo, newVersion);
+            trans.updateAccount(account, ownerName, contactInfo, newVersion, changeLog);
         } catch (Exception e) {
             log.error("Account update fail with error:{}", accountNumber, e);
             throw new AccountUpdateError(e, "Account update error: " + account.getAccountNumber());
         }
 
         log.info("Account update success:{}", accountNumber);
-        accountOpt = getAccountByAccountNumber(accountNumber);
-        return accountOpt.map(this::toDTO).orElse(null);
+        return accountOpt.map(this::toSimpleDTO).orElse(null);
     }
 
     /**
@@ -247,7 +304,7 @@ public class BankAccountServiceImpl implements BankAccountService {
      */
     @Override
     @Observed(name = "bank.account.service.transfer")
-    public BankTransferDTO transfer(TransferRequest request) {
+    public BankTransferDTO transfer(TransferRequest request) throws AccountException, AccountError {
         // Validate that source and destination accounts are different
         String fromAccountNumber = request.getFromAccountNumber();
         String toAccountNumber = request.getToAccountNumber();
@@ -305,6 +362,39 @@ public class BankAccountServiceImpl implements BankAccountService {
         }
 
         long newVersion = verHelper.genId();
+        // 构建余额变动日志
+        BankAccountBalanceLog fromBalanceLog = BankAccountBalanceLog.builder()
+                .accountId(from.getId())
+                .accountNumber(from.getAccountNumber())
+                .beforeBalance(from.getBalance())
+                .afterBalance(from.getBalance().subtract(amount))
+                .changeAmount(amount.negate())
+                .changeType(5) // 5:转出
+                .changeDesc("转账转出")
+                .createdAt(LocalDateTime.now())
+                .build();
+        BankAccountBalanceLog toBalanceLog = BankAccountBalanceLog.builder()
+                .accountId(to.getId())
+                .accountNumber(to.getAccountNumber())
+                .beforeBalance(to.getBalance())
+                .afterBalance(to.getBalance().add(amount))
+                .changeAmount(amount)
+                .changeType(6) // 6:转入
+                .changeDesc("转账转入")
+                .createdAt(LocalDateTime.now())
+                .build();
+        BankAccountTransferLog transferLog = BankAccountTransferLog.builder()
+                .fromAccountId(from.getId())
+                .fromAccountNumber(from.getAccountNumber())
+                .toAccountId(to.getId())
+                .toAccountNumber(to.getAccountNumber())
+                .amount(amount)
+                .beforeBalanceFrom(from.getBalance())
+                .afterBalanceFrom(from.getBalance().subtract(amount))
+                .beforeBalanceTo(to.getBalance())
+                .afterBalanceTo(to.getBalance().add(amount))
+                .createdAt(LocalDateTime.now())
+                .build();
         // Save updated accounts
         // Redis distributed lock to prevent concurrent creation of the same account
         try (RedisLock lock1 = new RedisLock(redisTemplate, getLockKey(fromAccountNumber), 3);
@@ -315,7 +405,7 @@ public class BankAccountServiceImpl implements BankAccountService {
             if (!lock2.isLocked()) {
                 throw new AccountConcurrentException("Failed to acquire account creation lock: " + toAccountNumber);
             }
-            trans.transfer(from, to, amount, newVersion);
+            trans.transfer(from, to, amount, newVersion, fromBalanceLog, toBalanceLog, transferLog);
         } catch (Exception e) {
             log.error("Transfer failed from account {} to account {} with amount {}",
                     fromAccountNumber, toAccountNumber, amount, e);
@@ -324,15 +414,17 @@ public class BankAccountServiceImpl implements BankAccountService {
 
         log.info("Transfer success from account {} to account {} with amount {}",
                 fromAccountNumber, toAccountNumber, amount);
-        fromOpt = getAccountByAccountNumber(fromAccountNumber);
-        toOpt = getAccountByAccountNumber(toAccountNumber);
+        BankAccountDTO fromDto = fromOpt.map(this::toSimpleDTO).orElse(null)
+                .setBalance(from.getBalance().subtract(amount));
+        BankAccountDTO toDto = toOpt.map(this::toSimpleDTO).orElse(null)
+                .setBalance(to.getBalance().add(amount));
         return new BankTransferDTO()
-                .setFrom(fromOpt.map(this::toDTO).orElse(null))
-                .setTo(toOpt.map(this::toDTO).orElse(null))
+                .setFrom(fromDto)
+                .setTo(toDto)
                 ;
     }
 
-    private Optional<BankAccount> getAccountByAccountNumber(String accountNumber) {
+    private Optional<BankAccount> getAccountByAccountNumber(String accountNumber) throws AccountError {
         try {
             return repository.findByAccountNumber(accountNumber);
         } catch (Exception e) {
@@ -340,10 +432,19 @@ public class BankAccountServiceImpl implements BankAccountService {
         }
     }
 
+    /**
+     * List accounts with pagination
+     *
+     * @param lastId
+     * @param size
+     * @return
+     * @throws AccountException
+     * @throws AccountError
+     */
     @Override
     @Transactional(readOnly = true)
     @Observed(name = "bank.account.service.list")
-    public BankAccountListDTO listAccounts(Long lastId, Integer size) {
+    public BankAccountListDTO listAccounts(Long lastId, Integer size) throws AccountException, AccountError {
         if (null == lastId) {
             lastId = Long.MAX_VALUE; // Default to max value if lastId is negative
         }
@@ -391,7 +492,7 @@ public class BankAccountServiceImpl implements BankAccountService {
     @Transactional(readOnly = true)
     @Cacheable(value = "account", key = "#accountNumber")
     @Observed(name = "bank.account.service.get")
-    public BankAccountDTO getAccount(String accountNumber) {
+    public BankAccountDTO getAccount(String accountNumber) throws AccountException, AccountError {
         Optional<BankAccount> bankAccount = getAccountByAccountNumber(accountNumber);
         if (bankAccount.isEmpty()) {
             log.warn("Account not found: {}", accountNumber);
@@ -400,6 +501,12 @@ public class BankAccountServiceImpl implements BankAccountService {
         BankAccount account = bankAccount.get();
         log.info("Get account : {}", accountNumber);
         return toDTO(account);
+    }
+
+    private BankAccountDTO toSimpleDTO(BankAccount account) {
+        return new BankAccountDTO()
+                .setId(account.getId())
+                .setAccountNumber(account.getAccountNumber());
     }
 
     private BankAccountDTO toDTO(BankAccount account) {
@@ -414,4 +521,3 @@ public class BankAccountServiceImpl implements BankAccountService {
                 .setState(account.getState());
     }
 }
-
