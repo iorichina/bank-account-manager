@@ -28,7 +28,7 @@ public class EmbeddedRedisConfig {
             log.error("Redis port {} is already in use", port);
             return null;
         }
-        return new RedisServerBuilder().port(port).setting("maxheap 32M").build();
+        return new RedisServerBuilder().port(port).setting("maxmemory 32M").build();
     }
 
     /**

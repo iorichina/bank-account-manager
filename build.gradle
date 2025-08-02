@@ -2,6 +2,8 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.2.6'
     id 'io.spring.dependency-management' version '1.1.4'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
+    id 'me.champeau.jmh' version '0.7.2'
 }
 
 group = 'iorihuang'
@@ -41,39 +43,20 @@ dependencies {
     testImplementation('org.springframework.boot:spring-boot-starter-test') {
         exclude group: 'org.slf4j', module: 'slf4j-simple'
     }
-    // JMH 基准测试依赖
-    testImplementation 'org.openjdk.jmh:jmh-core:1.37'
-    testAnnotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.37'
+    // JMH 基准测试依赖（只用于 shadowJar，不进 bootJar）
+    implementation 'org.openjdk.jmh:jmh-core:1.37'
+    annotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.37'
 }
-
-// JMH 独立基准测试jar配置
-configurations {
-    jmh
+configurations.all {
+    exclude group: 'commons-logging', module: 'commons-logging'
 }
-dependencies {
-    jmh 'org.openjdk.jmh:jmh-core:1.37'
-    testAnnotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.37'
-}
-task jmhJar(type: Jar) {
-    archiveClassifier = 'jmh'
-    manifest {
-        attributes 'Main-Class': 'org.openjdk.jmh.Main'
-    }
-    from sourceSets.test.output
-    dependsOn testClasses
-    from {
-        configurations.jmh.collect { it.isDirectory() ? it : zipTree(it) }
-    }
-    with jar
-}
-
 // 配置复制依赖到 lib 目录
 task copyDependencies(type: Copy) {
     from configurations.runtimeClasspath
     into 'build/libs/lib'
 }
 
-tasks.bootJar.dependsOn copyDependencies
+tasks.build.dependsOn copyDependencies
 
 test {
     useJUnitPlatform()
@@ -97,6 +80,21 @@ bootJar {
     enabled = true
     archiveFileName = 'bank-account-manager.jar'
     launchScript()
+    // 排除 JMH 相关依赖
+    exclude('org/openjdk/jmh/**')
+    exclude('META-INF/services/org.openjdk.jmh.*')
+    exclude('jmh.properties')
+}
+
+shadowJar {
+    // 确保 resources/main 被包含
+    from sourceSets.main.output
+    // 合并服务文件，避免 spring.factories/spring.components 丢失
+    mergeServiceFiles()
+    // 可选：指定主类（如需直接 java -jar 运行 JMH benchmark）
+    // manifest {
+    //     attributes 'Main-Class': 'org.openjdk.jmh.Main'
+    // }
 }
 
 tasks.withType(JavaCompile) {

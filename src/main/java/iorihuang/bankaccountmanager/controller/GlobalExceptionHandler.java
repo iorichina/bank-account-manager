@@ -26,7 +26,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AccountError.class)
     public ResponseEntity<?> handleAccountError(AccountError ex) {
-        return buildResponse(ex);
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
+//        return buildResponse(ex);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -56,7 +57,7 @@ public class GlobalExceptionHandler {
         if (ex instanceof AccountError) {
             return handleAccountError((AccountError) ex);
         }
-        log.error("Internal server error: {}", ex.getMessage());
+        log.error("Undefined Internal server error: {}", ex.getMessage());
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
     }
 
