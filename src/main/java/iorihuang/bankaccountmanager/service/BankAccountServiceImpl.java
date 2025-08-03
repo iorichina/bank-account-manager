@@ -26,8 +26,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -249,7 +249,7 @@ public class BankAccountServiceImpl implements BankAccountService {
      * @return account after updated
      */
     @Override
-    @CachePut(value = "account", key = "#accountNumber")
+    @CacheEvict(value = "account", key = "#accountNumber")
     @Observed(name = "bank.account.service.update")
     public BankAccountDTO updateAccount(String accountNumber, UpdateAccountRequest request) throws AccountException, AccountError {
         Optional<BankAccount> accountOpt = getAccountByAccountNumber(accountNumber);
@@ -317,6 +317,10 @@ public class BankAccountServiceImpl implements BankAccountService {
      */
     @Override
     @Observed(name = "bank.account.service.transfer")
+    @Caching(evict = {
+            @CacheEvict(value = "account", key = "#request.fromAccountNumber"),
+            @CacheEvict(value = "account", key = "#request.toAccountNumber")
+    })
     public BankTransferDTO transfer(TransferRequest request) throws AccountException, AccountError {
         // Validate that source and destination accounts are different
         String fromAccountNumber = request.getFromAccountNumber();
