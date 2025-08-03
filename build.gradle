@@ -101,5 +101,5 @@ tasks.withType(JavaCompile) {
 jmh {
     iterations = 1
     warmupIterations = 5
-    timeOnIteration = '10m'
+    timeOnIteration = '5m'
 }

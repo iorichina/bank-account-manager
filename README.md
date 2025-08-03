@@ -40,6 +40,22 @@
 - “错误”将返回5xx状态码及错误信息
 - “异常”将返回200状态码及错误信息
 
+### 缓存
+
+- 只在读取账户信息时，对账户本身进行缓存，其他数据不缓存
+- 使用本地缓存Caffeine
+- 针对账户信息场景，一般来说是第一次读取后一段时间内，会频繁读取，所以第一次读取就产生缓存，能有效提高缓存命中率
+- 为了更好地监控命中率，默认会开启缓存监控（有稍微性能影响），可通过 `http://localhost:10086/actuator/caches` 查看命中率
+
+- 分布式锁使用Embedded-Redis，但由于Embedded-Redis不稳定，默认不开启Redis缓存
+- 若需要使用Embedded-Redis缓存，可通过配置`embedded-redis.server.enabled=true`开启
+
+embedded-redis 可能在某些环境下不稳定，比如我在arm架构的ubuntu测试时，Embedded-Redis会报如下错误：
+
+```log
+/tmp/1754197611799-0/redis-server-2.8.19: /tmp/1754197611799-0/redis-server-2.8.19: cannot execute binary file
+```
+
 ### 监控
 
 - 使用Spring Boot Actuator提供的监控端点，暴露应用健康状态、指标等信息
@@ -51,9 +67,9 @@
 
 ### 单元测试&基准测试
 
-单元测试覆盖领域服务
+单元测试覆盖领域服务，核心路径全量覆盖；
 
-基准测试启动springboot容器执行吞吐量压测
+基准测试启动springboot容器执行吞吐量压测；
 
 ## 目录结构
 
@@ -71,6 +87,15 @@ bankaccountmanager
 ├── service - 领域服务，定义账户管理的业务逻辑
 ├── util - 工具类，提供通用的功能，如IP转换等
 ```
+
+### 配置
+
+### 敏感信息
+
+`application.properties`里面的数据库账号密钥，优先使用了环境变量的值，通常适合于大部分密钥管理要求；
+也可以通过`application-prod.properties`这种形式覆盖，但需要启动命令指定环境`prod`；
+
+但如果想要更安全，就需要配置`spring cloud config`或者aws加密管理服务等配置中心来管理敏感信息。
 
 ## 快速开始
 
@@ -264,7 +289,7 @@ jmh {
 }
 ```
 
-通过修改`benchmark/BankAccountServiceBenchmarkIface.java`文件中的常量控制每次执行测试需要测试的账户数量。
+通过修改`benchmark/BankAccountServiceBenchmarkIface.java`文件中的常量控制每次执行测试需要测试的账户数量，默认10000。
 
 ### 5. 数据库
 
