@@ -33,7 +33,7 @@
 使用H2内存数据库，数据在应用运行时存储于内存中，重启后数据将丢失。
 可通过H2控制台访问数据库，默认地址为`http://localhost:10086/h2-console` ，JDBC URL为`jdbc:h2:mem:bankdb`。
 
-建表DDL见`src/main/resources/schema.sql`
+建表DDL见 [schema.sql](src/main/resources/schema.sql)
 
 - 账户信息表，存储账户简单信息，如账户号、账户类型、持有人信息、地址等。
 - 账户信息变更记录表，存储账户的变更记录，主要是不涉及账户余额的变更的操作记录，如开户、修改地址、删除等操作。
@@ -46,7 +46,7 @@
 
 #### 1.3.3.2. 账户信息变更记录表
 
-这个信息表并不是很重要，可以考虑异步提交到分布式队列，定时任务消费的方式来实现记录。 todo
+这个信息表并不是很重要，可以考虑异步提交到分布式队列，定时任务消费的方式来实现记录。 
 
 #### 1.3.3.3. 账户余额变更记录表
 
@@ -106,9 +106,9 @@ Jmeter基准测试；
 | 功能     | 方法     | 路径                                           | 说明         |
 |--------|--------|----------------------------------------------|------------|
 | 创建账户   | POST   | `/op/api/accounts/v1/create`                 | 创建新账户      |
-| 删除账户   | DELETE | `/op/api/accounts/v1/delete/{accountNumber}` | 删除（状态删除）账户 |
-| 修改账户   | PUT    | `/op/api/accounts/v1/update/{accountNumber}` | 修改账户信息     |
-| 查询账户详情 | GET    | `/op/api/accounts/v1/{accountNumber}`        | 查询单个账户详情   |
+| 删除账户   | DELETE | `/op/api/accounts/v1/delete/{account_umber}` | 删除（状态删除）账户 |
+| 修改账户   | PUT    | `/op/api/accounts/v1/update/{account_umber}` | 修改账户信息     |
+| 查询账户详情 | GET    | `/op/api/accounts/v1/{account_umber}`        | 查询单个账户详情   |
 | 分页查询账户 | GET    | `/op/api/accounts/v1/list?page=0&size=10`    | 分页查询账户列表   |
 | 账户转账   | POST   | `/op/api/accounts/v1/transfer`               | 账户间转账      |
 
@@ -116,134 +116,152 @@ Jmeter基准测试；
 
 #### 1.4.2.1. **创建账户**
 
-> - 路径：POST `/op/api/accounts/v1/create`
-> - 请求体：
-    >   ```json
-    > {
-    > "accountNumber": "10001",
-    > "ownerId": "u001",
-    > "ownerName": "张三",
-    > "contactInfo": "13800000000",
-    > "accountType": 1,
-    > "initialBalance": "1000.00"
-    > }
-    >   ```
-> - 响应体：
-    >   ```json
-    > {
-    > "id": 1,
-    > "accountNumber": "10001",
-    > "accountType": 1,
-    > "ownerId": "u001",
-    > "ownerName": "张三",
-    > "contactInfo": "13800000000",
-    > "balance": 1000.00,
-    > "state": 1
-    > }
-    >   ```
-> - 示例请求：
-    >   ```shell
-    > curl 'http://127.0.0.1:10086/op/api/accounts/v1/create' \
-    > -X POST \
-    > -H 'Content-Type: application/json' \
-    > -d '{
-    >     "account_number":"A002",
-    >     "account_type":1,
-    >     "owner_id":"2L",
-    >     "owner_name":"A2L",
-    >     "contact_info":"A2LL",
-    >     "initial_balance":"23.506"
-    > }'
-    >   ```
+- 路径：POST `/op/api/accounts/v1/create`
+- 请求体：
+    ```json
+    {
+    "account_umber": "10001",
+    "owner_id": "u001",
+    "owner_name": "张三",
+    "contact_info": "13800000000",
+    "account_type": 1,
+    "initialBalance": "1000.00"
+    }
+    ```
+- 响应体：
+    ```json
+    {
+    "id": "1",
+    "account_umber": "10001",
+    "account_type": 1,
+    "owner_id": "u001",
+    "owner_name": "张三",
+    "contact_info": "13800000000",
+    "balance": "1000.000400",
+    "state": 1
+    }
+    ```
+- 示例请求：
+    ```shell
+    curl 'http://127.0.0.1:10086/op/api/accounts/v1/create' \
+    -X POST \
+    -H 'Content-Type: application/json' \
+    -d '{
+        "account_number":"A002",
+        "account_type":1,
+        "owner_id":"2L",
+        "owner_name":"A2L",
+        "contact_info":"A2LL",
+        "initial_balance":"23.506"
+    }'
+    ```
 
 #### 1.4.2.2. **删除账户**
 
-> - 路径：DELETE `/op/api/accounts/v1/delete/{accountNumber}`
-> - 响应体：
-    >   ```json
-    > {
-    > "id": 1,
-    > "accountNumber": "10001"
-    > }
-    >   ```
-> - 示例请求：
-    >   ```shell
-    >   curl 'http://127.0.0.1:10086/op/api/accounts/v1/delete/A003' \
-    >   -X DELETE 
-    >   ```
+- 路径：DELETE `/op/api/accounts/v1/delete/{account_umber}`
+- 响应体：
+    ```json
+    {
+        "id": "1",
+        "account_umber": "10001"
+    }
+    ```
+- 示例请求：
+    ```shell
+      curl 'http://127.0.0.1:10086/op/api/accounts/v1/delete/A003' \
+      -X DELETE 
+    ```
 
 #### 1.4.2.3. **修改账户**
 
-> - 路径：PUT `/op/api/accounts/v1/update/{accountNumber}`
-> - 请求体：
-    >   ```json
-    > {
-    > "ownerName": "李四",
-    > "contactInfo": "13900000000"
-    > }
-    >   ```
-> - 响应体：同“删除账户”响应体
-> - 示例请求：
-    >   ```shell
-    >   curl 'http://127.0.0.1:10086/op/api/accounts/v1/update/A002' \
-    >    -X PUT \
-    >   -H 'Content-Type: application/json' \
-    >   -d '{
-    >       "owner_name":"A22L",
-    >       "contact_info":"A22LL"
-    >   }'
-    >   ```
+- 路径：PUT `/op/api/accounts/v1/update/{account_umber}`
+- 请求体：
+    ```json
+    {
+        "owner_name": "李四",
+        "contact_info": "13900000000"
+    }
+    ```
+- 响应体：
+    ```json
+    {
+        "id": "1",
+        "account_umber": "10001"
+    }
+    ```
+- 示例请求：
+    ```shell
+      curl 'http://127.0.0.1:10086/op/api/accounts/v1/update/A002' \
+       -X PUT \
+      -H 'Content-Type: application/json' \
+      -d '{
+          "owner_name":"A22L",
+          "contact_info":"A22LL"
+      }'
+    ```
 
 #### 1.4.2.4. **查询账户详情**
 
-> - 路径：GET `/op/api/accounts/v1/{accountNumber}`
-> - 响应体：同“创建账户”响应体
-> - 示例请求：
-    >   ```shell
-    >   curl 'http://127.0.0.1:10086/info/api/accounts/v1/A002'
-    >   ```
+- 路径：GET `/op/api/accounts/v1/{account_umber}`
+- 响应体：
+    ```json
+    {
+    "id": "1",
+    "account_umber": "10001",
+    "account_type": 1,
+    "owner_id": "u001",
+    "owner_name": "张三",
+    "contact_info": "13800000000",
+    "balance": "1000.000000",
+    "state": 1
+    }
+    ```
+- 示例请求：
+    ```shell
+      curl 'http://127.0.0.1:10086/info/api/accounts/v1/A002'
+    ```
 
 #### 1.4.2.5. **分页查询账户**
 
-> - 路径：GET `/op/api/accounts/v1/list?last_id=920682284187648&size=10`
-> - 请求参数：
+- 路径：GET `/op/api/accounts/v1/list?last_id=920682284187648&size=10`
+- 请求参数：
     - `last_id`：上次查询的最后一个账户ID，用于分页
     - `size`：每页返回的账户数量，默认为10
-> - 响应体：
-    >   ```json
-    > {
-    > "elements": [
-    > { "id": 1, "accountNumber": "10001", ... },
-    > { "id": 2, "accountNumber": "10002", ... }
-    > ],
-    > "hasMore": false,
-    > "lastId": 920682284187648
-    > }
-    >   ```
-> - 示例请求：
-    >   ```shell
-    >   curl 'http://127.0.0.1:10086/info/api/accounts/v1/list?last_id=920682284187648'
-    >   curl 'http://127.0.0.1:10086/info/api/accounts/v1/list'
-    >   ```
+- 响应体：
+    ```json
+    {
+    "elements": [
+        { "id": "1", "account_number": "10001", ... },
+        { "id": "2", "account_number": "10002", ... }
+    ],
+    "has_more": 1,
+    "lastId": "920682284187648"
+    }
+    ```
+- 示例请求：
+    ```shell
+      curl 'http://127.0.0.1:10086/info/api/accounts/v1/list?last_id=920682284187648'
+      curl 'http://127.0.0.1:10086/info/api/accounts/v1/list'
+    ```
 
 #### 1.4.2.6. **账户转账**
 
-> - 路径：POST `/op/api/accounts/v1/transfer`
-> - 请求体：
-    >   ```json
-    > {
-    > "fromAccountNumber": "10001",
-    > "toAccountNumber": "10002",
-    > "amount": "100.00"
-    > }
-    >   ```
-> - 响应体：
-    >   ```json
-    > {
-    > "from": { "accountNumber": "10001", "balance": 900.00 },
-    > "to": { "accountNumber": "10002", "balance": 1100.00 }
-    > }
-    >   ```
+- 路径：POST `/op/api/accounts/v1/transfer`
+- 请求体：
+    ```json
+    {
+        "from_account_umber": "10001",
+        "to_account_umber": "10002",
+        "amount": "100.00"
+    }
+    ```
+- 响应体：
+    ```json
+    {
+        "from": { "account_umber": "10001", "balance": 900.00 },
+        "to": { "account_umber": "10002", "balance": 1100.00 }
+    }
+    ```
 
 ## 1.5. 代码目录结构
 
@@ -286,7 +304,7 @@ docker run -e JAVA_OPTS="-server -Xms2g -Xmx2g -XX:NewRatio=2 -XX:+UseG1GC -Xlog
 #### 1.6.1.3. 运行说明
 
 - 分布式锁使用Embedded-Redis，但由于Embedded-Redis不稳定，默认不开启Redis缓存
-- 若需要使用Embedded-Redis缓存，可通过配置`embedded-redis.server.enabled=true`开启
+- 若需要使用Embedded-Redis缓存，可通过配置`embedded-redis.server.enabled=true`、注释`spring.autoconfigure.exclude=*`开启
 - embedded-redis 可能在某些环境下不稳定，比如我在arm架构的ubuntu测试时，Embedded-Redis会报如下错误：
 
 ```log

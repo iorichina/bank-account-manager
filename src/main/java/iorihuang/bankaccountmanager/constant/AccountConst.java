@@ -13,6 +13,15 @@ public final class AccountConst {
      */
     public static final int BALANCE_SHOW_DOTS = 6;
 
+    /**
+     * Account/Balance change lock time in seconds.
+     * This is used to prevent concurrent modifications to the same account or balance.
+     */
+    public static final int ACCOUNT_CHANGE_LOCK_SEC = 3;
+
+    /**
+     * JPA unique constraint error message
+     */
     public static final String UNIQUE_CONSTRAINT = "unique constraint";
     public static final String DUPLICATE_KEY = "duplicate key";
 }

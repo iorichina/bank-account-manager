@@ -18,6 +18,8 @@ import iorihuang.bankaccountmanager.model.BankAccountChangeLog;
 import iorihuang.bankaccountmanager.model.BankAccountTransferLog;
 import iorihuang.bankaccountmanager.model.bankaccount.AccountState;
 import iorihuang.bankaccountmanager.model.bankaccount.AccountType;
+import iorihuang.bankaccountmanager.model.bankaccountbalancelog.BalanceChangeType;
+import iorihuang.bankaccountmanager.model.bankaccountchangelog.AccountChangeType;
 import iorihuang.bankaccountmanager.repository.BankAccountRepository;
 import iorihuang.bankaccountmanager.repository.BankAccountTrans;
 import lombok.RequiredArgsConstructor;
@@ -123,7 +125,7 @@ public class BankAccountServiceImpl implements BankAccountService {
                 .accountId(accountId)
                 .accountNumber(accountNumber)
                 .ownerId(request.getOwnerId())
-                .changeType(1) // 1:Open Account
+                .changeType(AccountChangeType.OPEN_ACCOUNT.getCode()) // 1:Open Account
                 .changeDesc("开户")
                 .beforeState(AccountState.NONE.getCode())
                 .afterState(AccountState.ACTIVE.getCode())
@@ -139,12 +141,12 @@ public class BankAccountServiceImpl implements BankAccountService {
                 .beforeBalance(BigDecimal.ZERO)
                 .afterBalance(balance)
                 .changeAmount(balance)
-                .changeType(1) // 1:开户
+                .changeType(BalanceChangeType.DEPOSIT.getCode()) // 1:开户
                 .changeDesc("开户初始入账")
                 .createdAt(now)
                 .build();
         // Redis distributed lock to prevent concurrent creation of the same account
-        try (RedisLock lock = new RedisLock(redisTemplate, getLockKey(accountNumber), 3)) {
+        try (RedisLock lock = new RedisLock(redisTemplate, getLockKey(accountNumber), AccountConst.ACCOUNT_CHANGE_LOCK_SEC)) {
             if (!lock.isLocked()) {
                 throw new AccountConcurrentException("Failed to acquire account creation lock: " + accountNumber);
             }
@@ -200,12 +202,14 @@ public class BankAccountServiceImpl implements BankAccountService {
             log.warn("Account has balance, frozen instead of delete : {}", accountNumber);
             newState = AccountState.FROZEN;
         }
+        int changeType = newState == AccountState.CLOSED ? AccountChangeType.CLOSE_ACCOUNT.getCode() : AccountChangeType.FROZEN_STATE_CHANGE.getCode();
+        String changeDesc = newState == AccountState.CLOSED ? "销户" : "有余额无法销户，仅冻结";
         BankAccountChangeLog changeLog = BankAccountChangeLog.builder()
                 .accountId(account.getId())
                 .accountNumber(account.getAccountNumber())
                 .ownerId(account.getOwnerId())
-                .changeType(newState == AccountState.CLOSED ? 2 : 4) // 2:Close, 4:Frozen
-                .changeDesc(newState == AccountState.CLOSED ? "销户" : "有余额无法销户，仅冻结")
+                .changeType(changeType) // 2:Close, 4:Frozen
+                .changeDesc(changeDesc)
                 .beforeState(account.getState())
                 .afterState(newState.getCode())
                 .beforeOwnerName(account.getOwnerName())
@@ -215,7 +219,7 @@ public class BankAccountServiceImpl implements BankAccountService {
                 .createdAt(LocalDateTime.now())
                 .build();
         // Redis distributed lock to prevent concurrent creation of the same account
-        try (RedisLock lock = new RedisLock(redisTemplate, getLockKey(accountNumber), 3)) {
+        try (RedisLock lock = new RedisLock(redisTemplate, getLockKey(accountNumber), AccountConst.ACCOUNT_CHANGE_LOCK_SEC)) {
             if (!lock.isLocked()) {
                 throw new AccountConcurrentException("Failed to acquire account creation lock: " + accountNumber);
             }
@@ -281,7 +285,7 @@ public class BankAccountServiceImpl implements BankAccountService {
                 .accountId(account.getId())
                 .accountNumber(account.getAccountNumber())
                 .ownerId(account.getOwnerId())
-                .changeType(3) // 3:Info Change
+                .changeType(AccountChangeType.INFO_CHANGE.getCode()) // 3:Info Change
                 .changeDesc("信息变更")
                 .beforeState(account.getState())
                 .afterState(account.getState())
@@ -292,7 +296,7 @@ public class BankAccountServiceImpl implements BankAccountService {
                 .createdAt(LocalDateTime.now())
                 .build();
         // Redis distributed lock to prevent concurrent creation of the same account
-        try (RedisLock lock = new RedisLock(redisTemplate, getLockKey(accountNumber), 3)) {
+        try (RedisLock lock = new RedisLock(redisTemplate, getLockKey(accountNumber), AccountConst.ACCOUNT_CHANGE_LOCK_SEC)) {
             if (!lock.isLocked()) {
                 throw new AccountConcurrentException("Failed to acquire account creation lock: " + accountNumber);
             }
@@ -378,7 +382,7 @@ public class BankAccountServiceImpl implements BankAccountService {
                 .beforeBalance(from.getBalance())
                 .afterBalance(from.getBalance().subtract(amount))
                 .changeAmount(amount.negate())
-                .changeType(5) // 5:转出
+                .changeType(BalanceChangeType.TRANSFER_OUT.getCode()) // 4:转出
                 .changeDesc("转账转出")
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -388,7 +392,7 @@ public class BankAccountServiceImpl implements BankAccountService {
                 .beforeBalance(to.getBalance())
                 .afterBalance(to.getBalance().add(amount))
                 .changeAmount(amount)
-                .changeType(6) // 6:转入
+                .changeType(BalanceChangeType.TRANSFER_IN.getCode()) // 3:转入
                 .changeDesc("转账转入")
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -406,8 +410,8 @@ public class BankAccountServiceImpl implements BankAccountService {
                 .build();
         // Save updated accounts
         // Redis distributed lock to prevent concurrent creation of the same account
-        try (RedisLock lock1 = new RedisLock(redisTemplate, getLockKey(fromAccountNumber), 3);
-             RedisLock lock2 = new RedisLock(redisTemplate, getLockKey(toAccountNumber), 3)) {
+        try (RedisLock lock1 = new RedisLock(redisTemplate, getLockKey(fromAccountNumber), AccountConst.ACCOUNT_CHANGE_LOCK_SEC);
+             RedisLock lock2 = new RedisLock(redisTemplate, getLockKey(toAccountNumber), AccountConst.ACCOUNT_CHANGE_LOCK_SEC)) {
             if (!lock1.isLocked()) {
                 throw new AccountConcurrentException("Failed to acquire account creation lock: " + fromAccountNumber);
             }
