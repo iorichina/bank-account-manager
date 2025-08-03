@@ -61,15 +61,17 @@ embedded-redis 可能在某些环境下不稳定，比如我在arm架构的ubunt
 - 使用Spring Boot Actuator提供的监控端点，暴露应用健康状态、指标等信息
 - 集成Micrometer，支持Prometheus等监控系统，由于是单进程项目，这里不做上报，仅写日志
 
-### 限流熔断
-
-没有很明确的场景，这个待定 todo
-
 ### 单元测试&基准测试
 
 单元测试覆盖领域服务，核心路径全量覆盖；
 
-基准测试启动springboot容器执行吞吐量压测；
+代码级基准测试启动springboot容器执行吞吐量压测；
+
+Jmeter基准测试；
+
+### 限流熔断
+
+没有很明确的场景，这个待定 todo
 
 ## 目录结构
 
@@ -122,6 +124,8 @@ docker run -e JAVA_OPTS="-server -Xms2g -Xmx2g -XX:NewRatio=2 -XX:+UseG1GC -Xlog
 
 - 账户管理接口前缀：`/op/api/accounts/v1`
 - H2控制台：`http://localhost:10086/h2-console`，JDBC URL: `jdbc:h2:mem:bankdb`
+- 监控缓存命中率： `http://localhost:10086/actuator/metrics/cache.gets?tag=cache:account&tag=result:hit` /
+  `http://localhost:10086/actuator/metrics/cache.gets?tag=cache:account`
 
 ### 3. 主要API
 
@@ -271,7 +275,7 @@ docker run -e JAVA_OPTS="-server -Xms2g -Xmx2g -XX:NewRatio=2 -XX:+UseG1GC -Xlog
 ./gradlew test
 ```
 
-#### 基准测试
+#### 代码级基准测试
 
 当前是通过JMH实现的，直接执行任务即可完成基准测试。
 
@@ -290,6 +294,10 @@ jmh {
 ```
 
 通过修改`benchmark/BankAccountServiceBenchmarkIface.java`文件中的常量控制每次执行测试需要测试的账户数量，默认10000。
+
+#### JMeter基准测试
+
+在`jmx`目录下，提供了JMeter测试脚本，可以直接导入JMeter进行基准测试。
 
 ### 5. 数据库
 
