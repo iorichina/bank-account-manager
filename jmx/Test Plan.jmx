@@ -5,14 +5,23 @@
       <boolProp name="TestPlan.serialize_threadgroups">true</boolProp>
       <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
         <collectionProp name="Arguments.arguments">
-          <elementProp name="account_number" elementType="Argument">
-            <stringProp name="Argument.name">account_number</stringProp>
-            <stringProp name="Argument.value">A00</stringProp>
+          <elementProp name="api_host2" elementType="Argument">
+            <stringProp name="Argument.name">api_host2</stringProp>
+            <stringProp name="Argument.value">192.168.31.125</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="api_port" elementType="Argument">
+            <stringProp name="Argument.name">api_port</stringProp>
+            <stringProp name="Argument.value">10086</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="api_host" elementType="Argument">
+            <stringProp name="Argument.name">api_host</stringProp>
+            <stringProp name="Argument.value">127.0.0.1</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
         </collectionProp>
       </elementProp>
-      <boolProp name="TestPlan.functional_mode">false</boolProp>
     </TestPlan>
     <hashTree>
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Thread Group create">
@@ -27,7 +36,7 @@
         </elementProp>
       </ThreadGroup>
       <hashTree>
-        <CounterConfig guiclass="CounterConfigGui" testclass="CounterConfig" testname="Counter" enabled="true">
+        <CounterConfig guiclass="CounterConfigGui" testclass="CounterConfig" testname="Counter">
           <stringProp name="CounterConfig.start">1</stringProp>
           <stringProp name="CounterConfig.end">500</stringProp>
           <stringProp name="CounterConfig.incr">1</stringProp>
@@ -36,9 +45,9 @@
           <boolProp name="CounterConfig.per_user">false</boolProp>
         </CounterConfig>
         <hashTree/>
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="create" enabled="true">
-          <stringProp name="HTTPSampler.domain">127.0.0.1</stringProp>
-          <stringProp name="HTTPSampler.port">10086</stringProp>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="create">
+          <stringProp name="HTTPSampler.domain">${api_host}</stringProp>
+          <stringProp name="HTTPSampler.port">${api_port}</stringProp>
           <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
           <stringProp name="HTTPSampler.path">/op/api/accounts/v1/create</stringProp>
           <stringProp name="HTTPSampler.method">POST</stringProp>
@@ -184,7 +193,7 @@
           <hashTree/>
         </hashTree>
       </hashTree>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Thread Group update" enabled="true">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Thread Group update">
         <boolProp name="ThreadGroup.delayedStart">true</boolProp>
         <intProp name="ThreadGroup.num_threads">10</intProp>
         <intProp name="ThreadGroup.ramp_time">10</intProp>
@@ -205,9 +214,9 @@
           <boolProp name="CounterConfig.per_user">false</boolProp>
         </CounterConfig>
         <hashTree/>
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="update" enabled="true">
-          <stringProp name="HTTPSampler.domain">127.0.0.1</stringProp>
-          <stringProp name="HTTPSampler.port">10086</stringProp>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="update">
+          <stringProp name="HTTPSampler.domain">${api_host}</stringProp>
+          <stringProp name="HTTPSampler.port">${api_port}</stringProp>
           <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
           <stringProp name="HTTPSampler.path">/op/api/accounts/v1/update/B${account_number_cnt}</stringProp>
           <stringProp name="HTTPSampler.method">PUT</stringProp>
@@ -349,7 +358,7 @@
           <hashTree/>
         </hashTree>
       </hashTree>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Thread Group transfer" enabled="true">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Thread Group transfer">
         <boolProp name="ThreadGroup.delayedStart">true</boolProp>
         <intProp name="ThreadGroup.num_threads">10</intProp>
         <intProp name="ThreadGroup.ramp_time">10</intProp>
@@ -370,9 +379,9 @@
           <boolProp name="CounterConfig.per_user">false</boolProp>
         </CounterConfig>
         <hashTree/>
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="transfer" enabled="true">
-          <stringProp name="HTTPSampler.domain">127.0.0.1</stringProp>
-          <stringProp name="HTTPSampler.port">10086</stringProp>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="transfer">
+          <stringProp name="HTTPSampler.domain">${api_host}</stringProp>
+          <stringProp name="HTTPSampler.port">${api_port}</stringProp>
           <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
           <stringProp name="HTTPSampler.path">/op/api/accounts/balance/v1/transfer</stringProp>
           <stringProp name="HTTPSampler.method">POST</stringProp>
@@ -485,7 +494,7 @@
             <stringProp name="filename"></stringProp>
           </ResultCollector>
           <hashTree/>
-          <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree" enabled="true">
+          <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree">
             <boolProp name="ResultCollector.error_logging">false</boolProp>
             <objProp>
               <name>saveConfig</name>
@@ -524,7 +533,7 @@
           <hashTree/>
         </hashTree>
       </hashTree>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Thread Group list" enabled="true">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Thread Group list">
         <boolProp name="ThreadGroup.delayedStart">true</boolProp>
         <intProp name="ThreadGroup.num_threads">10</intProp>
         <intProp name="ThreadGroup.ramp_time">10</intProp>
@@ -545,9 +554,9 @@
           <boolProp name="CounterConfig.per_user">false</boolProp>
         </CounterConfig>
         <hashTree/>
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="list" enabled="true">
-          <stringProp name="HTTPSampler.domain">127.0.0.1</stringProp>
-          <stringProp name="HTTPSampler.port">10086</stringProp>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="list">
+          <stringProp name="HTTPSampler.domain">${api_host}</stringProp>
+          <stringProp name="HTTPSampler.port">${api_port}</stringProp>
           <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
           <stringProp name="HTTPSampler.path">/info/api/accounts/v1/list</stringProp>
           <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
@@ -672,7 +681,7 @@
           <hashTree/>
         </hashTree>
       </hashTree>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Thread Group get" enabled="true">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Thread Group get">
         <boolProp name="ThreadGroup.delayedStart">true</boolProp>
         <intProp name="ThreadGroup.num_threads">10</intProp>
         <intProp name="ThreadGroup.ramp_time">10</intProp>
@@ -693,9 +702,9 @@
           <boolProp name="CounterConfig.per_user">false</boolProp>
         </CounterConfig>
         <hashTree/>
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="get" enabled="true">
-          <stringProp name="HTTPSampler.domain">127.0.0.1</stringProp>
-          <stringProp name="HTTPSampler.port">10086</stringProp>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="get">
+          <stringProp name="HTTPSampler.domain">${api_host}</stringProp>
+          <stringProp name="HTTPSampler.port">${api_port}</stringProp>
           <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
           <stringProp name="HTTPSampler.path">/info/api/accounts/v1/B${account_number_cnt}</stringProp>
           <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
@@ -820,7 +829,7 @@
           <hashTree/>
         </hashTree>
       </hashTree>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Thread Group delete" enabled="true">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Thread Group delete">
         <boolProp name="ThreadGroup.delayedStart">true</boolProp>
         <intProp name="ThreadGroup.num_threads">10</intProp>
         <intProp name="ThreadGroup.ramp_time">10</intProp>
@@ -841,9 +850,9 @@
           <boolProp name="CounterConfig.per_user">false</boolProp>
         </CounterConfig>
         <hashTree/>
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="delete" enabled="true">
-          <stringProp name="HTTPSampler.domain">127.0.0.1</stringProp>
-          <stringProp name="HTTPSampler.port">10086</stringProp>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="delete">
+          <stringProp name="HTTPSampler.domain">${api_host}</stringProp>
+          <stringProp name="HTTPSampler.port">${api_port}</stringProp>
           <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
           <stringProp name="HTTPSampler.path">/op/api/accounts/v1/delete/B${account_number_cnt}</stringProp>
           <stringProp name="HTTPSampler.method">DELETE</stringProp>
