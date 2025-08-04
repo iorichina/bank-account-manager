@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bank-account-manager-ingress
+spec:
+  rules:
+    - host: bank-account-manager.local #本地测试域名
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: bank-account-manager
+                port:
+                  number: 10086
+
