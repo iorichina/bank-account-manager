@@ -9,9 +9,13 @@ plugins {
 group = 'iorihuang'
 version = '1.0-SNAPSHOT'
 sourceCompatibility = '17'
+targetCompatibility = '17'
 
 repositories {
     mavenLocal()
+    maven {
+        url "https://maven.aliyun.com/repository/public"
+    }
     mavenCentral()
 }
 
@@ -27,8 +31,11 @@ dependencies {
     // tracing component
     implementation 'io.micrometer:micrometer-tracing-bridge-brave'
     implementation 'io.micrometer:micrometer-core'
+    // swagger replacement
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'
     implementation 'com.github.ben-manes.caffeine:caffeine:3.1.8'
     implementation 'org.projectlombok:lombok:1.18.30'
+    // redis
     implementation('it.ozimov:embedded-redis:0.7.3') {
         exclude group: 'org.slf4j', module: 'slf4j-simple'
     }
@@ -102,4 +109,6 @@ jmh {
     iterations = 1
     warmupIterations = 5
     timeOnIteration = '5m'
+    // 指定JMH基准测试启动类
+    includes = ['JmhBenchmarkRunner']
 }

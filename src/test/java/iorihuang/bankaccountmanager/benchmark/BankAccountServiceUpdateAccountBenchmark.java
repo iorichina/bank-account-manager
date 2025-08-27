@@ -1,6 +1,5 @@
 package iorihuang.bankaccountmanager.benchmark;
 
-import iorihuang.bankaccountmanager.BankAccountManagerApplication;
 import iorihuang.bankaccountmanager.dto.CreateAccountRequest;
 import iorihuang.bankaccountmanager.dto.TransferRequest;
 import iorihuang.bankaccountmanager.dto.UpdateAccountRequest;
@@ -11,28 +10,19 @@ import iorihuang.bankaccountmanager.model.bankaccount.AccountType;
 import iorihuang.bankaccountmanager.service.BankAccountService;
 import org.junit.jupiter.api.Order;
 import org.openjdk.jmh.annotations.*;
-import org.springframework.beans.BeansException;
-import org.springframework.boot.SpringApplication;
-import org.springframework.context.ConfigurableApplicationContext;
-import redis.embedded.RedisServer;
 
-import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * JMH 基准测试：accounts相关service方法
  */
-//@SpringBootTest
 @Fork(1)
-//@State(Scope.Benchmark)
 @State(Scope.Thread)
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.SECONDS)
 public class BankAccountServiceUpdateAccountBenchmark implements BankAccountServiceBenchmarkIface {
-    static ConfigurableApplicationContext ctx;
-    static BankAccountService service;
-    static RedisServer redisServer;
+    BankAccountService service;
 
     static CreateAccountRequest createRequest;
     static UpdateAccountRequest updateRequest;
@@ -52,54 +42,11 @@ public class BankAccountServiceUpdateAccountBenchmark implements BankAccountServ
 
     @Setup(Level.Trial)
     public void setup() {
-//    static {
-        System.out.println();
-        System.out.println("////////////////////////////////");
-        System.out.println("setup");
-        System.out.println("////////////////////////////////");
-        System.out.println();
-        if (null != ctx) {
-            return;
-        }
-        ctx = SpringApplication.run(BankAccountManagerApplication.class);
-        try {
-            service = ctx.getBean(BankAccountService.class);
-        } catch (BeansException e) {
-            //
-        }
-        try {
-            redisServer = ctx.getBean(RedisServer.class);
-        } catch (BeansException e) {
-            //
-        }
-        System.out.println();
-        System.out.println("----------------------------------");
-        System.out.println(Arrays.toString(ctx.getBeanDefinitionNames()));
-        System.out.println("---------------------------------");
-        System.out.println();
-
-        createRequest = new CreateAccountRequest()
-                .setAccountNumber(testAccountNumber)
-                .setAccountType(AccountType.SAVINGS.getCode())
-                .setOwnerId("123456789")
-                .setOwnerName("张三")
-                .setInitialBalance(testBalance)
-                .setContactInfo("123456789");
-        try {
-            createRequest.setAccountNumber(testAccountNumber1);
-            service.createAccount(createRequest);
-            createRequest.setAccountNumber(testAccountNumber2);
-            service.createAccount(createRequest);
-            createRequest.setAccountNumber(testAccountNumber3);
-            service.createAccount(createRequest);
-            createRequest.setAccountNumber(testAccountNumber4);
-            service.createAccount(createRequest);
-        } catch (AccountError e) {
-            throw new RuntimeException(e);
-        } catch (AccountException e) {
-            throw new RuntimeException(e);
-        }
-
+        // 使用共享的Spring上下文
+        service = JmhSpringContext.service;
+        createRequest = JmhSpringContext.createRequest;
+        
+        // 初始化其他请求对象
         updateRequest = new UpdateAccountRequest();
         updateRequest.setOwnerName("李四");
         updateRequest.setContactInfo("987654321");
@@ -140,26 +87,8 @@ public class BankAccountServiceUpdateAccountBenchmark implements BankAccountServ
 
     @TearDown(Level.Trial)
     public void tearDown() {
-        System.out.println();
-        System.out.println("////////////////////////////////");
-        System.out.println("tearDown");
-        System.out.println("////////////////////////////////");
-        System.out.println();
-        if (null != redisServer) {
-            redisServer.stop();
-            System.out.println("redisServer.stop");
-            System.out.println("////////////////////////////////");
-        }
-        if (ctx != null) {
-            ctx.close();
-            System.out.println("ctx.close");
-            System.out.println("////////////////////////////////");
-        }
-        try {
-            Thread.sleep(5000);
-        } catch (InterruptedException e) {
-            //
-        }
+        // 不再需要在这里关闭Spring上下文，由JmhSpringContext统一管理
+        System.out.println("BankAccountServiceUpdateAccountBenchmark tearDown completed");
     }
 
 }
