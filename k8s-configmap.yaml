@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bank-account-manager-config
+  labels:
+    app: bank-account-manager
+data:
+  application.properties: |
+    server.port=10086
+

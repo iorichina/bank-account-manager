@@ -1,0 +1,9 @@
+windows 10 4CPU 8G
+
+Benchmark                                                    Mode  Cnt     Score   Error  Units
+BankAccountServiceCreateAccountBenchmark.testCreateAccount  thrpt        458.909          ops/s
+BankAccountServiceDeleteAccountBenchmark.testDeleteAccount  thrpt       1768.764          ops/s
+BankAccountServiceGetAccountBenchmark.testGetAccount        thrpt        766.664          ops/s
+BankAccountServiceListAccountsBenchmark.testListAccounts    thrpt       1731.358          ops/s
+BankAccountServiceTransferBenchmark.testTransfer            thrpt        135.280          ops/s
+BankAccountServiceUpdateAccountBenchmark.testUpdateAccount  thrpt       1245.774          ops/s

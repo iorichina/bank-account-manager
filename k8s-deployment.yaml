@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bank-account-manager
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: bank-account-manager
+  template:
+    metadata:
+      labels:
+        app: bank-account-manager
+    spec:
+      containers:
+        - name: bank-account-manager
+          image: iorichina/bank-account-manager:latest
+          ports:
+            - containerPort: 10086
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: prod
+            - name: SPRING_SERVER_PORT
+              valueFrom:
+                SecretKeyRef:
+                  name: bank-account-manager-secret
+                  key: server-port
+          resources:
+            requests:
+              memory: "1024Mi"
+              cpu: "1000m" # h2内存数据库需要更多的cpu和内存
+            limits:
+              memory: "2048Mi"
+              cpu: "2000m"
+          volumeMounts:
+            - name: config-volume
+              mountPath: /config
+      volumes:
+        - name: config-volume
+          configMap:
+            name: bank-account-manager-config

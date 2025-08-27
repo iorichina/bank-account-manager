@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: bank-account-manager
+spec:
+  type: NodePort #本地测试使用NodePort，生产环境使用LoadBalancer
+  selector:
+    app: bank-account-manager
+  ports:
+    - port: 80
+      targetPort: 10086
+
