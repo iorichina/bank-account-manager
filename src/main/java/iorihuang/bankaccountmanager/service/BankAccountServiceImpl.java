@@ -116,7 +116,7 @@ public class BankAccountServiceImpl implements BankAccountService {
                 .balance(balance)
                 .balanceAt(now)
                 .state(AccountState.ACTIVE.getCode())
-                .version(version) // Use custom version instead of default 0
+                .ver(version) // Use custom version instead of default 0
                 .createdAt(now)
                 .updatedAt(now)
                 .deletedAt(now)
@@ -238,7 +238,8 @@ public class BankAccountServiceImpl implements BankAccountService {
                 break;
         }
 
-        return accountOpt.map(this::toSimpleDTO).orElse(null);
+        Optional<BankAccount> accountByAccountNumber = this.getAccountByAccountNumber(accountNumber);
+        return accountByAccountNumber.map(this::toDTO).orElse(null);
     }
 
     /**
@@ -535,6 +536,7 @@ public class BankAccountServiceImpl implements BankAccountService {
                 .setOwnerName(account.getOwnerName())
                 .setContactInfo(account.getContactInfo())
                 .setBalance(account.getBalance())
-                .setState(account.getState());
+                .setState(account.getState())
+                .setUpdatedAt(account.getUpdatedAt());
     }
 }

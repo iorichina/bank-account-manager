@@ -69,7 +69,7 @@ class BankAccountCreateTest {
                 .balance(new BigDecimal("0.00"))
                 .accountType(1)
                 .state(1)
-                .version(100L)
+                .ver(100L)
                 .build();
         when(trans.createAccount(any(), any(), any())).thenReturn(account);
         BankAccountDTO dto = service.createAccount(req);

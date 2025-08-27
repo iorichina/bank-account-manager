@@ -80,7 +80,7 @@ class BankAccountUpdateTest {
                 .balance(BigDecimal.valueOf(100))
                 .balanceAt(LocalDateTime.now())
                 .state(AccountState.ACTIVE.getCode())
-                .version(verHelper.genId())
+                .ver(verHelper.genId())
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .deletedAt(LocalDateTime.now())
