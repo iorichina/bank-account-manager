@@ -238,8 +238,8 @@ public class BankAccountServiceImpl implements BankAccountService {
                 break;
         }
 
-        Optional<BankAccount> accountByAccountNumber = this.getAccountByAccountNumber(accountNumber);
-        return accountByAccountNumber.map(this::toDTO).orElse(null);
+        accountOpt = getAccountByAccountNumber(accountNumber);
+        return accountOpt.map(this::toDTO).orElse(null);
     }
 
     /**
@@ -278,7 +278,7 @@ public class BankAccountServiceImpl implements BankAccountService {
         // no change
         if (Objects.equals(ownerName, account.getOwnerName()) && Objects.equals(contactInfo, account.getContactInfo())) {
             log.info("Account update with no change:{}", accountNumber);
-            return toSimpleDTO(account);
+            return toDTO(account);
         }
 
         long newVersion = verHelper.genId();
@@ -308,7 +308,8 @@ public class BankAccountServiceImpl implements BankAccountService {
         }
 
         log.info("Account update success:{}", accountNumber);
-        return accountOpt.map(this::toSimpleDTO).orElse(null);
+        accountOpt = getAccountByAccountNumber(accountNumber);
+        return accountOpt.map(this::toDTO).orElse(null);
     }
 
     /**
@@ -376,7 +377,7 @@ public class BankAccountServiceImpl implements BankAccountService {
         //validate state
         if (!Objects.equals(to.getState(), AccountState.ACTIVE.getCode())) {
             log.warn("Transfer to account is not active: {}", toAccountNumber);
-            throw new AccountTransferException(ExpCode.TransferAccountLimit, "Destination account is not active: " + fromAccountNumber);
+            throw new AccountTransferException(ExpCode.TransferAccountLimit, "Destination account is not active: " + toAccountNumber);
         }
 
         long newVersion = verHelper.genId();
@@ -432,13 +433,13 @@ public class BankAccountServiceImpl implements BankAccountService {
 
         log.info("Transfer success from account {} to account {} with amount {}",
                 fromAccountNumber, toAccountNumber, amount);
-        BankAccountDTO fromDto = fromOpt.map(this::toSimpleDTO).orElse(null)
-                .setBalance(from.getBalance().subtract(amount));
-        BankAccountDTO toDto = toOpt.map(this::toSimpleDTO).orElse(null)
-                .setBalance(to.getBalance().add(amount));
+//        BankAccountDTO fromDto = fromOpt.map(this::toSimpleDTO).orElse(null)
+//                .setBalance(from.getBalance().subtract(amount));
+//        BankAccountDTO toDto = toOpt.map(this::toSimpleDTO).orElse(null)
+//                .setBalance(to.getBalance().add(amount));
         return new BankTransferDTO()
-                .setFrom(fromDto)
-                .setTo(toDto)
+                .setFrom(getAccountByAccountNumber(fromAccountNumber).map(this::toDTO).orElse(null))
+                .setTo(getAccountByAccountNumber(toAccountNumber).map(this::toDTO).orElse(null))
                 ;
     }
 

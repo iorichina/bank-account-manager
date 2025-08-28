@@ -48,14 +48,16 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleOther(Exception ex) {
-        if (ex instanceof jakarta.servlet.ServletException) {
-            ex = (Exception) ex.getCause();
+        if (ex instanceof jakarta.servlet.ServletException servletException) {
+            if (null != servletException.getCause()) {
+                ex = (Exception) servletException.getCause();
+            }
         }
-        if (ex instanceof AccountException) {
-            return handleAccountException((AccountException) ex);
+        if (ex instanceof AccountException accountException) {
+            return handleAccountException(accountException);
         }
-        if (ex instanceof AccountError) {
-            return handleAccountError((AccountError) ex);
+        if (ex instanceof AccountError accountError) {
+            return handleAccountError(accountError);
         }
         log.error("Undefined Internal server error: {}", ex.getMessage());
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
