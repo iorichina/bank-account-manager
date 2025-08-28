@@ -56,8 +56,8 @@ class BankAccountUpdateTest {
 
     @Test
     void updateAccount_success() throws AccountError, AccountException {
-        BankAccount acc = BankAccount.builder().id(1L).accountNumber("A001").ownerName("张三").contactInfo("13800000000").build();
-        BankAccount acc2 = BankAccount.builder().id(1L).accountNumber("A001").ownerName("李四").contactInfo("13900000000").build();
+        BankAccount acc = BankAccount.builder().id(1L).accountNumber("A001").ownerName("张三").contactInfo("13800000000").updatedAt(LocalDateTime.now()).build();
+        BankAccount acc2 = BankAccount.builder().id(1L).accountNumber("A001").ownerName("李四").contactInfo("13900000000").updatedAt(LocalDateTime.now()).build();
         when(repository.findByAccountNumber("A001")).thenReturn(Optional.of(acc), Optional.of(acc2));
         UpdateAccountRequest req = new UpdateAccountRequest();
         req.setOwnerName("李四");
@@ -80,7 +80,7 @@ class BankAccountUpdateTest {
                 .balance(BigDecimal.valueOf(100))
                 .balanceAt(LocalDateTime.now())
                 .state(AccountState.ACTIVE.getCode())
-                .version(verHelper.genId())
+                .ver(verHelper.genId())
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .deletedAt(LocalDateTime.now())

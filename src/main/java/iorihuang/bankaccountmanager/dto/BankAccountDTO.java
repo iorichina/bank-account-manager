@@ -8,6 +8,7 @@ import lombok.experimental.Accessors;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.util.Objects;
 
 /**
@@ -42,6 +43,8 @@ public class BankAccountDTO {
      * @see iorihuang.bankaccountmanager.model.bankaccount.AccountState
      */
     private Integer state;
+    @JsonProperty("updated_at")
+    private String updatedAt;
 
     /**
      * Set the account id
@@ -71,4 +74,8 @@ public class BankAccountDTO {
         return this;
     }
 
+    public BankAccountDTO setUpdatedAt(LocalDateTime updatedAt){
+        this.updatedAt = updatedAt.format(AccountConst.DATE_TIME_FORMATTER);
+        return this;
+    }
 }

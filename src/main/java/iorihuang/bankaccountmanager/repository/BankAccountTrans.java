@@ -44,18 +44,18 @@ public class BankAccountTrans {
      * @param balanceLog
      * @return
      */
-    @Transactional(rollbackFor = Throwable.class, isolation = Isolation.REPEATABLE_READ, propagation = Propagation.REQUIRES_NEW)
+    @Transactional(transactionManager = "primaryTransactionManager", rollbackFor = Throwable.class, isolation = Isolation.REPEATABLE_READ, propagation = Propagation.REQUIRES_NEW)
     public BankAccount createAccount(BankAccount account, BankAccountChangeLog changeLog, BankAccountBalanceLog balanceLog) throws AccountError, AccountException {
         try {
-            BankAccount save = repository.save(account);
+            repository.insert(account);
             if (changeLog != null) {
                 // 保存变更日志
-                changeLogRepository.save(changeLog);
+                changeLogRepository.insert(changeLog);
             }
             if (balanceLog != null) {
-                balanceLogRepository.save(balanceLog);
+                balanceLogRepository.insert(balanceLog);
             }
-            return save;
+            return account;
         } catch (DataIntegrityViolationException e) {
             // Determine if the root cause is a unique constraint violation in H2
             if (e.getRootCause() instanceof org.h2.jdbc.JdbcSQLIntegrityConstraintViolationException) {
@@ -82,7 +82,7 @@ public class BankAccountTrans {
      * @param changeLog
      * @return updated time
      */
-    @Transactional(rollbackFor = Throwable.class, isolation = Isolation.REPEATABLE_READ, propagation = Propagation.REQUIRES_NEW)
+    @Transactional(transactionManager = "primaryTransactionManager", rollbackFor = Throwable.class, isolation = Isolation.REPEATABLE_READ, propagation = Propagation.REQUIRES_NEW)
     public LocalDateTime updateAccount(BankAccount account, String ownerName, String contactInfo, long newVersion, BankAccountChangeLog changeLog) throws AccountError, AccountException {
         LocalDateTime now = LocalDateTime.now();
         String accountNumber = account.getAccountNumber();
@@ -91,7 +91,7 @@ public class BankAccountTrans {
                     account.getId(),
                     account.getAccountNumber(),
                     account.getState(),
-                    account.getVersion(),
+                    account.getVer(),
                     ownerName,
                     contactInfo,
                     now,
@@ -102,7 +102,7 @@ public class BankAccountTrans {
                 throw AccountExceptions.updateAccount(accountNumber);
             }
             if (changeLog != null) {
-                changeLogRepository.save(changeLog);
+                changeLogRepository.insert(changeLog);
             }
         } catch (Exception e) {
             if (e instanceof AccountException) {
@@ -122,7 +122,7 @@ public class BankAccountTrans {
      * @param changeLog
      * @return delete timestamp
      */
-    @Transactional(rollbackFor = Throwable.class, isolation = Isolation.REPEATABLE_READ, propagation = Propagation.REQUIRES_NEW)
+    @Transactional(transactionManager = "primaryTransactionManager", rollbackFor = Throwable.class, isolation = Isolation.REPEATABLE_READ, propagation = Propagation.REQUIRES_NEW)
     public LocalDateTime deleteAccount(BankAccount account, AccountState newState, long newVersion, BankAccountChangeLog changeLog) throws AccountError, AccountException {
         String accountNumber = account.getAccountNumber();
         LocalDateTime now = LocalDateTime.now();
@@ -134,7 +134,7 @@ public class BankAccountTrans {
                             account.getId(),
                             account.getAccountNumber(),
                             account.getState(),
-                            account.getVersion(),
+                            account.getVer(),
                             newState.getCode(), // Set new state to CLOSED
                             now, // Deletion timestamp
                             newVersion // New version number
@@ -145,7 +145,7 @@ public class BankAccountTrans {
                             account.getId(),
                             account.getAccountNumber(),
                             account.getState(),
-                            account.getVersion(),
+                            account.getVer(),
                             newState.getCode(), // Set new state to FROZEN
                             now, // update timestamp
                             newVersion // New version number
@@ -156,7 +156,7 @@ public class BankAccountTrans {
                 throw AccountExceptions.deleteAccount(accountNumber);
             }
             if (changeLog != null) {
-                changeLogRepository.save(changeLog);
+                changeLogRepository.insert(changeLog);
             }
         } catch (Exception e) {
             if (e instanceof AccountException) {
@@ -178,29 +178,29 @@ public class BankAccountTrans {
      * @param toBalanceLog
      * @return
      */
-    @Transactional(rollbackFor = Throwable.class, isolation = Isolation.REPEATABLE_READ, propagation = Propagation.REQUIRES_NEW)
+    @Transactional(transactionManager = "primaryTransactionManager", rollbackFor = Throwable.class, isolation = Isolation.REPEATABLE_READ, propagation = Propagation.REQUIRES_NEW)
     public LocalDateTime transfer(BankAccount from, BankAccount to, BigDecimal amount, long version, BankAccountBalanceLog fromBalanceLog, BankAccountBalanceLog toBalanceLog, BankAccountTransferLog transferLog) throws AccountError, AccountException {
         LocalDateTime now = LocalDateTime.now();
         try {
             // Update the 'from' account balance
-            int updateFrom = repository.reduceBalanceByIdAndVersion(from.getId(), from.getAccountNumber(), from.getState(), from.getVersion(), from.getBalance(), amount, now, version);
+            int updateFrom = repository.reduceBalanceByIdAndVersion(from.getId(), from.getAccountNumber(), from.getState(), from.getVer(), from.getBalance(), amount, now, version);
             if (updateFrom <= 0) {
                 throw AccountExceptions.insufficientBalance(from.getAccountNumber(), amount);
             }
             // Update the 'to' account balance
-            int updateTo = repository.increaseBalanceByIdAndVersion(to.getId(), to.getAccountNumber(), to.getState(), to.getVersion(), to.getBalance(), amount, now, version);
+            int updateTo = repository.increaseBalanceByIdAndVersion(to.getId(), to.getAccountNumber(), to.getState(), to.getVer(), to.getBalance(), amount, now, version);
             if (updateTo <= 0) {
                 throw AccountExceptions.updateAccount(from.getAccountNumber());
             }
             if (transferLog != null) {
-                transferLogRepository.save(transferLog);
+                transferLogRepository.insert(transferLog);
             }
             //todo move to disruptor
             if (fromBalanceLog != null) {
-                balanceLogRepository.save(fromBalanceLog);
+                balanceLogRepository.insert(fromBalanceLog);
             }
             if (toBalanceLog != null) {
-                balanceLogRepository.save(toBalanceLog);
+                balanceLogRepository.insert(toBalanceLog);
             }
         } catch (Exception e) {
             if (e instanceof AccountException) {
@@ -212,9 +212,9 @@ public class BankAccountTrans {
     }
 
     /**
-     * 强制新事务读取，避免JPA一级缓存影响
+     * 强制新事务读取，避免JPA一级缓存影��
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
+    @Transactional(transactionManager = "primaryTransactionManager", propagation = Propagation.REQUIRES_NEW, readOnly = true)
     public Optional<BankAccount> getAccountByAccountNumberWithNewTx(String accountNumber) throws AccountError {
         try {
             return repository.findByAccountNumber(accountNumber);

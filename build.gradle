@@ -20,7 +20,6 @@ dependencies {
         exclude group: 'org.slf4j', module: 'slf4j-simple'
     }
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.springframework.boot:spring-boot-starter-cache'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
@@ -43,6 +42,9 @@ dependencies {
     // JMH 基准测试依赖（只用于 shadowJar，不进 bootJar）
     implementation 'org.openjdk.jmh:jmh-core:1.37'
     annotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.37'
+    implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.3'
+    implementation 'org.aspectj:aspectjweaver:1.9.22'
+
 }
 configurations.all {
     exclude group: 'commons-logging', module: 'commons-logging'
