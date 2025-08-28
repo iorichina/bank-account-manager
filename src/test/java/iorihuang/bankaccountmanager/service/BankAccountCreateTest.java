@@ -21,6 +21,7 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -70,6 +71,7 @@ class BankAccountCreateTest {
                 .accountType(1)
                 .state(1)
                 .ver(100L)
+                .updatedAt(LocalDateTime.now())
                 .build();
         when(trans.createAccount(any(), any(), any())).thenReturn(account);
         BankAccountDTO dto = service.createAccount(req);

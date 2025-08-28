@@ -35,7 +35,7 @@ class BankAccountListTest {
 
     @Test
     void listAccounts_success() throws AccountError, AccountException {
-        BankAccount acc = BankAccount.builder().id(1L).accountNumber("A001").ownerName("张三").balance(new BigDecimal("100.00")).build();
+        BankAccount acc = BankAccount.builder().id(1L).accountNumber("A001").ownerName("张三").balance(new BigDecimal("100.00")).updatedAt(LocalDateTime.now()).build();
         when(repository.findByState(AccountState.ACTIVE.getCode(), Long.MAX_VALUE, 11)).thenReturn(List.of(acc, acc));
         BankAccountListDTO page = service.listAccounts(null, null);
         assertEquals(2, page.getElements().size());

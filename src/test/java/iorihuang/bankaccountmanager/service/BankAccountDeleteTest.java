@@ -77,7 +77,7 @@ class BankAccountDeleteTest {
 
     @Test
     void deleteAccount_success() throws AccountError, AccountException {
-        BankAccount acc = BankAccount.builder().accountNumber("A001").balance(BigDecimal.ZERO).state(1).build();
+        BankAccount acc = BankAccount.builder().accountNumber("A001").balance(BigDecimal.ZERO).state(1).updatedAt(LocalDateTime.now()).build();
         when(repository.findByAccountNumber("A001")).thenReturn(Optional.of(acc));
         when(verHelper.genId()).thenReturn(100L, 100L, 100L, 100L, 100L, 100L);
         when(trans.deleteAccount(any(), eq(AccountState.fromCodeSafe(acc.getState())), anyLong(), any())).thenReturn(LocalDateTime.now());
@@ -86,7 +86,7 @@ class BankAccountDeleteTest {
 
     @Test
     void deleteAccount_frozen_success() throws AccountError, AccountException {
-        BankAccount acc = BankAccount.builder().id(1L).accountNumber("A001").balance(BigDecimal.ONE).state(1).build();
+        BankAccount acc = BankAccount.builder().id(1L).accountNumber("A001").balance(BigDecimal.ONE).state(1).updatedAt(LocalDateTime.now()).build();
         when(repository.findByAccountNumber("A001")).thenReturn(Optional.of(acc));
         when(verHelper.genId()).thenReturn(100L, 100L, 100L, 100L, 100L, 100L);
         when(trans.deleteAccount(any(), eq(AccountState.fromCodeSafe(acc.getState())), anyLong(), any())).thenReturn(LocalDateTime.now());
