@@ -37,7 +37,12 @@ jobs:
           type=ref,event=tag
           type=sha,format=short
           type=raw,value=latest,enable={{is_default_branch}}  # 仅主分支生成 latest 标签
-    
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      with:
+        driver: docker-container  # 使用支持缓存的容器驱动
+
     # 构建并推送镜像（PR 时仅构建不推送，推送事件时才推送）
     - name: Build and push
       uses: docker/build-push-action@v5
