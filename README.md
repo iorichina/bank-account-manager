@@ -8,7 +8,7 @@
 
 - Java 17
 - Spring Boot 3
-- Spring Data JPA
+- MyBatis
 - H2 内存数据库
 - Caffeine 本地缓存
 - Embedded Redis 分布式锁
@@ -296,7 +296,7 @@ bankaccountmanager
 ├── exception - 异常处理，定义全局异常处理器和自定义异常类
 ├── helper - 辅助工具，定义工具类，如雪花ID类
 ├── model - 实体类，定义账户等领域模型
-├── repository - 数据访问层，定义JPA仓库接口
+├── repository - 数据访问层，定义数据库仓库接口
 ├── service - 领域服务，定义账户管理的业务逻辑
 ├── util - 工具类，提供通用的功能，如IP转换等
 ```
@@ -379,11 +379,13 @@ jmh {
 
 #### 1.6.3.4. 火焰图
 
-测试机器： Cortex-A73 arm 6核4G内存；
+- 测试机器： Cortex-A73 arm 6核4G内存；
+- 测试工具： [async-profiler](https://github.com/async-profiler/async-profiler)
+- 测试方法： `$ asprof -d 30 -f flamegraph.html <PID>` 提取30秒的火焰图
 
 由于是内存数据库，所以测试结果无法看出业务代码的性能瓶颈。
 
-从[火焰图](flamegraph.html)看，主要耗时在于JPA的查询和事务处理上。
+从[火焰图](flamegraph.html)看，主要耗时在于数据库的查询和事务处理上。
 
 ## 1.7. 其他说明
 
