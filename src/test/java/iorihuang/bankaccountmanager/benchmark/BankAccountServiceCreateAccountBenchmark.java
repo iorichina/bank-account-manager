@@ -9,6 +9,7 @@ import iorihuang.bankaccountmanager.exception.AccountException;
 import iorihuang.bankaccountmanager.helper.snowflakeid.RecyclableAtomicLong;
 import iorihuang.bankaccountmanager.model.bankaccount.AccountType;
 import iorihuang.bankaccountmanager.service.BankAccountService;
+import one.profiler.AsyncProfiler;
 import org.junit.jupiter.api.Order;
 import org.openjdk.jmh.annotations.*;
 import org.springframework.beans.BeansException;
@@ -16,6 +17,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 import redis.embedded.RedisServer;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -50,8 +52,10 @@ public class BankAccountServiceCreateAccountBenchmark implements BankAccountServ
     static volatile RecyclableAtomicLong deleteCount = new RecyclableAtomicLong(THRESHOLD, 100);
     static volatile AtomicLong lastId;
 
+    AsyncProfiler profiler;
+
     @Setup(Level.Trial)
-    public void setup() {
+    public void setup() throws IOException {
 //    static {
         System.out.println();
         System.out.println("////////////////////////////////");
@@ -109,6 +113,10 @@ public class BankAccountServiceCreateAccountBenchmark implements BankAccountServ
         transferRequest.setToAccountNumber(testAccountNumber2);
         transferRequest.setAmount("1.01");
 
+        if (null == profiler) {
+            profiler = AsyncProfiler.getInstance();
+            profiler.execute("start,jfr,event=cpu,file=profiler_%p.jfr");
+        }
     }
 
     @Benchmark
@@ -125,7 +133,10 @@ public class BankAccountServiceCreateAccountBenchmark implements BankAccountServ
     }
 
     @TearDown(Level.Trial)
-    public void tearDown() {
+    public void tearDown() throws IOException {
+        if (null != profiler) {
+            profiler.execute("stop");
+        }
         System.out.println();
         System.out.println("////////////////////////////////");
         System.out.println("tearDown");

@@ -12,6 +12,9 @@ sourceCompatibility = '17'
 
 repositories {
     mavenLocal()
+    maven {
+        url "https://maven.aliyun.com/repository/public"
+    }
     mavenCentral()
 }
 
@@ -44,7 +47,8 @@ dependencies {
     annotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.37'
     implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.3'
     implementation 'org.aspectj:aspectjweaver:1.9.22'
-
+    // https://mvnrepository.com/artifact/tools.profiler/async-profiler
+    implementation 'tools.profiler:async-profiler:4.1'
 }
 configurations.all {
     exclude group: 'commons-logging', module: 'commons-logging'
