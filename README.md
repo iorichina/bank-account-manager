@@ -11,7 +11,7 @@
 - MyBatis
 - H2 内存数据库
 - Caffeine 本地缓存
-- Embedded Redis 分布式锁
+- Jedis-Mock 内存Redis分布式锁
 - Gradle 构建工具
 - Docker（多阶段构建）
 
@@ -289,7 +289,7 @@ Jmeter基准测试；
 ```
 bankaccountmanager
 ├── BankAccountManagerApplication - 入口类
-├── config - 自动配置，负责初始化监控、启动Embedded-Redis以及其他组件
+├── config - 自动配置，负责初始化监控、启动Jedis-Mock（内存Redis）以及其他组件
 ├── constant - 常量类，定义系统中使用的常量
 ├── controller - 控制层，负责处理HTTP请求，并调用领域服务
 ├── dto - 数据传输对象，定义接口的输入输出数据结构
@@ -324,15 +324,8 @@ docker run -e JAVA_OPTS="-server -Xms2g -Xmx2g -XX:NewRatio=2 -XX:+UseG1GC -Xlog
 
 #### 1.6.1.3. 运行说明
 
-- 分布式锁使用Embedded-Redis，但由于Embedded-Redis不稳定，默认不开启Redis缓存
-- 若需要使用Embedded-Redis缓存，可通过配置`embedded-redis.server.enabled=true`、注释`spring.autoconfigure.exclude=*`开启
-- embedded-redis 可能在某些环境下不稳定，比如我在arm架构的ubuntu测试时，Embedded-Redis会报如下错误：
-
-```log
-/tmp/1754197611799-0/redis-server-2.8.19: /tmp/1754197611799-0/redis-server-2.8.19: cannot execute binary file
-```
-
-- 启用 embedded-redis 需要留意进程退出后，有几率redis进程不会自动退出，可能会导致端口被占用，建议在测试完成后手动杀掉redis进程。
+- 分布式锁使用内存Redis（Jedis-Mock），占用19737端口作为redis服务端口
+- 程序运行时可以通过`redis-cli -p 19737 PING`检测redis服务可用性
 
 ### 1.6.2. 访问接口
 
