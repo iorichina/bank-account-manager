@@ -23,7 +23,6 @@ dependencies {
         exclude group: 'org.slf4j', module: 'slf4j-simple'
     }
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
-    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.springframework.boot:spring-boot-starter-cache'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     // tracing component
@@ -31,9 +30,11 @@ dependencies {
     implementation 'io.micrometer:micrometer-core'
     implementation 'com.github.ben-manes.caffeine:caffeine:3.1.8'
     implementation 'org.projectlombok:lombok:1.18.30'
-    implementation('it.ozimov:embedded-redis:0.7.3') {
-        exclude group: 'org.slf4j', module: 'slf4j-simple'
-    }
+    //redis
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    // https://mvnrepository.com/artifact/com.github.fppt/jedis-mock
+    implementation 'com.github.fppt:jedis-mock:1.1.12'
+    //database
 //    runtimeOnly 'com.h2database:h2'
     implementation 'com.h2database:h2'
     annotationProcessor 'org.projectlombok:lombok:1.18.30'

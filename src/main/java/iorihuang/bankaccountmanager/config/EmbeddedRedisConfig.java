@@ -1,13 +1,11 @@
 package iorihuang.bankaccountmanager.config;
 
+import com.github.fppt.jedismock.RedisServer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import redis.embedded.RedisServer;
-import redis.embedded.RedisServerBuilder;
 
+import java.io.IOException;
 import java.net.ServerSocket;
 
 /**
@@ -16,22 +14,27 @@ import java.net.ServerSocket;
 @Configuration
 @Slf4j
 public class EmbeddedRedisConfig {
-    @Value("${spring.redis.port:6379}")
-    private int redisPort;
 
     /**
-     * warning: sometimes the embedded redis destroy without port release
+     * for RedisCacheManager to register redis client
+     *
+     * @throws IOException
      */
-    @Bean(initMethod = "start", destroyMethod = "stop")
-    @ConditionalOnProperty(name = "embedded-redis.server.enabled", havingValue = "true")
-    public RedisServer redisServer() {
+    public RedisServer redisServer(@Value("${spring.redis.port:19737}") int redisPort) throws IOException {
         int port = redisPort;
         if (!isPortAvailable(port)) {
-            log.error("Embedded-Redis port {} is already in use, skip", port);
-            return null;
+            log.error("Embedded-Redis port {} is already in use, use port+1", port);
+            port++;
         }
         log.info("start Embedded-Redis starting with port {} ", port);
-        return new RedisServerBuilder().port(port).setting("maxmemory 32M").build();
+        RedisServer jedisMock = RedisServer
+                .newRedisServer(port)
+//                .setOptions(ServiceOptions.defaultOptions().withClusterModeEnabled())
+                .start();
+
+        System.out.println(jedisMock.isRunning());
+        System.out.println(jedisMock.getBindPort());
+        return jedisMock;
     }
 
     /**
