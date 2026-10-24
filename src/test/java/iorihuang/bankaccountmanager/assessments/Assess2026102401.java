@@ -44,50 +44,6 @@ public class Assess2026102401 {
         }
 
         return answer;
-
-
-        int[] answer = new int[100];
-        // Write your code here
-
-        // Handle edge cases
-        if (orderPlaced == null || orderPlaced.length == 0 || size <= 0) {
-            return new int[0];
-        }
-
-        int ansIdx = 0;
-        // Use an array to simulate a monotonic deque, storing indices of negative numbers (meat pizzas)
-        int[] deque = new int[orderPlaced.length];
-        int head = 0;
-        int tail = 0;
-
-        for (int i = 0; i < orderPlaced.length; i++) {
-            // If the current order is a meat pizza (negative), add its index to the deque
-            if (orderPlaced[i] < 0) {
-                deque[tail++] = i;
-            }
-
-            // When the window size reaches K, start recording the result and slide the window
-            if (i >= size - 1) {
-                // Remove indices from the head of the deque that are out of the current window
-                while (head < tail && deque[head] <= i - size) {
-                    head++;
-                }
-
-                // Safety check to prevent index out of bounds since answer length is fixed to 100
-                if (ansIdx < 100) {
-                    if (head < tail) {
-                        // The head of the deque is the first meat pizza in the current window
-                        answer[ansIdx++] = orderPlaced[deque[head]];
-                    } else {
-                        // No meat pizza in the current window
-                        answer[ansIdx++] = 0;
-                    }
-                }
-            }
-        }
-
-        // Truncate the array to the actual number of recorded results
-        return Arrays.copyOf(answer, ansIdx);
     }
     public static int[] orderPizza2(int[] orderPlaced, int size)
     {
